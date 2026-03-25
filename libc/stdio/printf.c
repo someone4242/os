@@ -92,6 +92,47 @@ int printf(const char* restrict format, ...) {
 				break;
 			}
 
+			case 'x': {
+				format++;
+				int d = va_arg(parameters, int /* char promotes to int */);
+				bool has_a_sign = d < 0;
+				if (d < 0) d = - d;
+				char buffer[16] = {'\0'};
+				int i = 0;
+				if (d == 0) buffer[i++] = '0';
+				while (d > 0) {
+					char c = (d % 16) + '0';
+					if (c > '9') c += 8;
+					d = d / 16;
+					buffer[i] = c;
+					i++;
+				}
+				if (has_a_sign) {
+					buffer[i] = '-';
+					i++;
+				}
+				buffer[i++] = 'x';
+				buffer[i++] = '0';
+				buffer[i] = '\0';
+				size_t len = i;
+					
+				for (int j = 0; 2*j < i; j++) {
+					char rem = buffer[j];
+					int a = i - 1 - j;
+					buffer[j] = buffer[a];
+					buffer[a] = rem;
+				}
+				
+				if (maxrem < len) {
+					// TODO: Set errno to EOVERFLOW.
+					return -1;
+				}
+				if (!print(buffer, len))
+					return -1;
+				written += len;
+				break;
+			}
+
 			case 's': {
 				format++;
 				const char* str = va_arg(parameters, const char*);
