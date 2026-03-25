@@ -64,6 +64,7 @@ sysroot
 # personnal
 joma.sh
 charles.sh
+max.sh
 
 altgrub.sh
 myos.kernel
