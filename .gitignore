@@ -56,11 +56,15 @@ dkms.conf
 # debug information files
 *.dwo
 
-joma.sh
+# meaty-skeleton gitignore
+*.iso
+isodir
+sysroot
 
+# personnal
+joma.sh
 charles.sh
 
-sysroot
-myos.iso
-myos.kernel
-isodir
+altgrub.sh
+
+

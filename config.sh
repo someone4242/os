@@ -26,3 +26,12 @@ export CC="$CC --sysroot=$SYSROOT"
 if echo "$HOST" | grep -Eq -- '-elf($|-)'; then
   export CC="$CC -isystem=$INCLUDEDIR"
 fi
+
+
+if [ -e altgrub.sh ]
+then
+    export GRUB=${GRUB:-$(./altgrub.sh)}
+else
+    export GRUB=${GRUB:-grub}
+fi
+
