@@ -101,7 +101,7 @@ int printf(const char* restrict format, ...) {
 				if (d == 0) buffer[i++] = '0';
 				while (d > 0) {
 					char c = (d % 16) + '0';
-					if (c > '9') c += 8;
+					if (c > '9') c += 'A' - '9' - 1;
 					d = d / 16;
 					buffer[i++] = c;
 				}
