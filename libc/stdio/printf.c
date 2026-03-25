@@ -58,12 +58,18 @@ int printf(const char* restrict format, ...) {
 			case 'd': {
 				format++;
 				int d = va_arg(parameters, int /* char promotes to int */);
+				bool has_a_sign = d < 0;
+				if (d < 0) d = - d;
 				char buffer[16] = {'\0'};
 				int i = 0;
 				while (d > 0) {
 					char c = (d % 10) + '0';
 					d = d / 10;
 					buffer[i] = c;
+					i++;
+				}
+				if (has_a_sign) {
+					buffer[i] = '-';
 					i++;
 				}
 				buffer[i] = '\0';
