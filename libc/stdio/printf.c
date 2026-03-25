@@ -62,15 +62,14 @@ int printf(const char* restrict format, ...) {
 				if (d < 0) d = - d;
 				char buffer[16] = {'\0'};
 				int i = 0;
+				if (d == 0) buffer[i++] = '0';
 				while (d > 0) {
 					char c = (d % 10) + '0';
 					d = d / 10;
-					buffer[i] = c;
-					i++;
+					buffer[i++] = c;
 				}
 				if (has_a_sign) {
-					buffer[i] = '-';
-					i++;
+					buffer[i++] = '-';
 				}
 				buffer[i] = '\0';
 				size_t len = i;
@@ -104,12 +103,10 @@ int printf(const char* restrict format, ...) {
 					char c = (d % 16) + '0';
 					if (c > '9') c += 8;
 					d = d / 16;
-					buffer[i] = c;
-					i++;
+					buffer[i++] = c;
 				}
 				if (has_a_sign) {
-					buffer[i] = '-';
-					i++;
+					buffer[i++] = '-';
 				}
 				buffer[i++] = 'x';
 				buffer[i++] = '0';
