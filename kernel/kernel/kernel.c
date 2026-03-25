@@ -5,7 +5,7 @@
 
 void kernel_main(multiboot_info_t* mbd, uint32_t magic) {
 	terminal_initialize();
-	printf("Hello, %s!\n", "world");
+	printf("Hello, %s! Funny joke : %d\n", "wOWOrld", 1123581321);
     /* Make sure the magic number matches for memory mapping*/
     if(magic != MULTIBOOT_BOOTLOADER_MAGIC) {
         // panic("invalid magic number!");

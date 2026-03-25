@@ -52,6 +52,38 @@ int printf(const char* restrict format, ...) {
 				if (!print(&c, sizeof(c)))
 					return -1;
 				written++;
+				break;
+			}
+
+			case 'd': {
+				format++;
+				int d = va_arg(parameters, int /* char promotes to int */);
+				char buffer[16] = {'\0'};
+				int i = 0;
+				while (d > 0) {
+					char c = (d % 10) + '0';
+					d = d / 10;
+					buffer[i] = c;
+					i++;
+				}
+				buffer[i] = '\0';
+				size_t len = i;
+					
+				for (int j = 0; 2*j < i; j++) {
+					char rem = buffer[j];
+					int a = i - 1 - j;
+					buffer[j] = buffer[a];
+					buffer[a] = rem;
+				}
+				
+				if (maxrem < len) {
+					// TODO: Set errno to EOVERFLOW.
+					return -1;
+				}
+				if (!print(buffer, len))
+					return -1;
+				written += len;
+				break;
 			}
 
 			case 's': {
@@ -65,6 +97,7 @@ int printf(const char* restrict format, ...) {
 				if (!print(str, len))
 					return -1;
 				written += len;
+				break;
 			}
 
 			default : {
