@@ -3,9 +3,12 @@
 #include <stdint.h>
 #include <kernel/tty.h>
 
+extern uint32_t _kernel_start;
+extern uint32_t _kernel_end;
+
 void kernel_main(multiboot_info_t* mbd, uint32_t magic) {
 	terminal_initialize();
-	printf("Hello, %s! Funny joke : %d\n", "wOWOrld", -1281321);
+	printf("Hello, world\n");
     /* Make sure the magic number matches for memory mapping*/
     if(magic != MULTIBOOT_BOOTLOADER_MAGIC) {
         // panic("invalid magic number!");
@@ -22,13 +25,17 @@ void kernel_main(multiboot_info_t* mbd, uint32_t magic) {
 
     /* Loop through the memory map and display the values */
     int i;
+    uint32_t start_addr = (uint32_t)&_kernel_start;
+    uint32_t end_addr = (uint32_t)&_kernel_end;
+
+    printf("Le noyau occupe la RAM de %d à %d\n", start_addr, end_addr);
     for(i = 0; i < mbd->mmap_length; 
         i += sizeof(multiboot_memory_map_t)) 
     {
         multiboot_memory_map_t* mmmt = 
             (multiboot_memory_map_t*) (mbd->mmap_addr + i);
 
-        printf("Start Addr: %x %x | Length: %x %x | Size: %x | Type: %d\n",
+        printf("Start Addr: %d %d | Length: %d %d | Size: %d | Type: %d\n",
             mmmt->addr_high, mmmt->addr_low, mmmt->len_high, mmmt->len_low, mmmt->size, mmmt->type);
 
         if(mmmt->type == MULTIBOOT_MEMORY_AVAILABLE) {
