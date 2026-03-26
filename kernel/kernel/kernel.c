@@ -29,11 +29,8 @@ void kernel_main(multiboot_info_t* mbd, uint32_t magic) {
     uint32_t end_addr = (uint32_t)&_kernel_end;
 
     printf("Le noyau occupe la RAM de %d à %d\n", start_addr, end_addr);
-    for(i = 0; i < mbd->mmap_length; 
-        i += sizeof(multiboot_memory_map_t)) 
-    {
-        multiboot_memory_map_t* mmmt = 
-            (multiboot_memory_map_t*) (mbd->mmap_addr + i);
+    for(i = 0; i < mbd->mmap_length; i += sizeof(multiboot_memory_map_t)) {
+        multiboot_memory_map_t* mmmt = (multiboot_memory_map_t*) (mbd->mmap_addr + i);
 
         printf("Start Addr: %d %d | Length: %d %d | Size: %d | Type: %d\n",
             mmmt->addr_high, mmmt->addr_low, mmmt->len_high, mmmt->len_low, mmmt->size, mmmt->type);
