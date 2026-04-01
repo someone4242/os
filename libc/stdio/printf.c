@@ -91,6 +91,37 @@ int printf(const char* restrict format, ...) {
 				break;
 			}
 
+			case 'u': {
+				format++;
+				unsigned int d = va_arg(parameters, unsigned int /* char promotes to int */);
+				char buffer[16] = {'\0'};
+				int i = 0;
+				if (d == 0) buffer[i++] = '0';
+				while (d > 0) {
+					char c = (d % 10) + '0';
+					d = d / 10;
+					buffer[i++] = c;
+				}
+				buffer[i] = '\0';
+				size_t len = i;
+					
+				for (int j = 0; 2*j < i; j++) {
+					char rem = buffer[j];
+					int a = i - 1 - j;
+					buffer[j] = buffer[a];
+					buffer[a] = rem;
+				}
+				
+				if (maxrem < len) {
+					// TODO: Set errno to EOVERFLOW.
+					return -1;
+				}
+				if (!print(buffer, len))
+					return -1;
+				written += len;
+				break;
+			}
+
 			case 'x': {
 				format++;
 				int d = va_arg(parameters, int /* char promotes to int */);
