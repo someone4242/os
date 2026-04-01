@@ -1,24 +1,26 @@
 #include <stdio.h>
-#include "multiboot.h"
+#include <stdlib.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <kernel/tty.h>
+#include "multiboot.h"
 
-#define PAGE_BYTE_SIZE 4096
-#define PAGE_SIZE 1024
+#define uint uint32_t
+
+#define PAGE_SIZE 4096
+#define TABLE_SIZE 1024
 #define NB_PAGE (1 << 20)
 #define PAGEID(ptr) ((int)((uintptr_t)(ptr) >> 12))
 
-extern uint32_t _kernel_start;
-extern uint32_t _kernel_end;
-uint32_t start_addr = (uint32_t)&_kernel_start;
-uint32_t end_addr = (uint32_t)&_kernel_end;
+extern uint _kernel_start;
+extern uint _kernel_end;
+#define start_addr ((uint)&_kernel_start)
+#define end_addr ((uint)&_kernel_end)
 
-extern void loadPageDirectory(uint32_t *);
+extern void loadPageDirectory(uint *);
 extern void enablePaging();
 
-static uint32_t page_directory[PAGE_SIZE] __attribute__((aligned(4096)));
-static uint32_t first_page_table[PAGE_SIZE] __attribute__((aligned(4096)));
-static uint32_t last_page_table[PAGE_SIZE] __attribute__((aligned(4096)));
+static uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 
 #define FREE 0
 #define RESERVED 1
@@ -26,69 +28,77 @@ static uint32_t last_page_table[PAGE_SIZE] __attribute__((aligned(4096)));
 typedef struct physical_page_info {
     // 0 -> libre
     // 1 -> reservé
-    int8_t flags;
+    uint8_t flags;
 } physical_page_info;
 
-static physical_page_info pageinfo[NB_PAGE];
+static physical_page_info pageinfo[NB_PAGE] __attribute__((aligned(PAGE_SIZE)));
 
 // we take the infos given by grub about memory map and fill in the page info table
 static void init_physical_pageinfo(multiboot_info_t* mbd) {
-    uint32_t start_addr = (uint32_t)&_kernel_start;
-    uint32_t end_addr = (uint32_t)&_kernel_end;
     for(size_t i = 0; i < mbd->mmap_length; i += sizeof(multiboot_memory_map_t)) {
         multiboot_memory_map_t* mmmt = (multiboot_memory_map_t*) (mbd->mmap_addr + i);
 
-        for(uint32_t addr = mmmt->addr_low; addr < mmmt->addr_low+mmmt->len_low; addr += PAGE_BYTE_SIZE) {
+        for(uint addr = mmmt->addr_low; addr < mmmt->addr_low+mmmt->len_low; addr += PAGE_SIZE) {
             pageinfo[PAGEID(addr)].flags = mmmt->type - 1;
         }
     }
-    for(uint32_t addr = start_addr; addr < end_addr; addr += PAGE_BYTE_SIZE) {
+    for(uint addr = start_addr; addr < end_addr; addr += PAGE_SIZE) {
         pageinfo[PAGEID(addr)].flags = 1;
     }
 }
 
-int is_free_physical_page(uint32_t pageid) {
+bool is_free_physical_page(uint pageid) {
     return pageinfo[pageid].flags == FREE;
 }
 
-static void reserve_physical_page(int pageid) {
-    pageinfo[pageid].flags = RESERVED;
-}
-
-uintptr_t get_free_physical_page() {
+uintptr_t alloc_physical_page() {
     uintptr_t page_addr = 0;
     while(page_addr < NB_PAGE && !is_free_physical_page(PAGEID(page_addr)))
-        page_addr += PAGE_BYTE_SIZE;
-    reserve_physical_page(PAGEID(page_addr));
+        page_addr += PAGE_SIZE;
+    pageinfo[PAGEID(page_addr)].flags = RESERVED;
     return page_addr;
 }
 
-static void identity_mapping(uint32_t page_addr) {
-    uint32_t pagetable_id = page_addr >> 22;
-    uint32_t page_id = page_addr >> 12 & ((1 << 11) - 1);
+#define DEFAULT 0
+static void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t perm) {
+    uint pagetable_id = virtual_addr >> 22;
+    uint page_id = virtual_addr >> 12 & ((1 << 11) - 1);
 
     if((page_directory[pagetable_id] & 1) == 0) {
         // the page isn't present
-        page_directory[pagetable_id] = get_free_physical_page() | 3;
+        page_directory[pagetable_id] = alloc_physical_page() | perm | 3;
     }
 
-    uint32_t* pagetable_addr = (uint32_t*)((page_directory[pagetable_id] >> 12) << 12);
+    uint* pagetable_addr = (uint*)((page_directory[pagetable_id] >> 12) << 12);
 
-    pagetable_addr[page_id] = page_addr | 3;
+    pagetable_addr[page_id] = physical_addr | perm | 3;
+}
+
+// we allocate the virtual addresses incrementally
+uint brk = end_addr;
+uint alloc_virtual_page(size_t memory_size) {
+    uint nb_pages = ((uint)memory_size + PAGE_SIZE - 1) / PAGE_SIZE;
+    uint virtual_addr = brk;
+    brk += PAGE_SIZE * nb_pages;
+    for(uint i_page = 0; i_page < nb_pages; i_page++) {
+        uint physical_addr = (uint)alloc_physical_page();
+
+        virtual_memory_map(virtual_addr + i_page * PAGE_SIZE, physical_addr, DEFAULT);
+    }
+    return virtual_addr;
 }
 
 void init_pagemap() {
-    for (size_t i = 0; i < PAGE_SIZE; i++) {
-        *(page_directory + i) = 0x0002;
-    }
+    for (size_t i = 0; i < TABLE_SIZE; i++)
+        page_directory[i] = 0x0002;
     
-    for(uint32_t addr = 0; addr < end_addr; addr += PAGE_BYTE_SIZE)
-        identity_mapping(addr);
+    for(uint addr = 0; addr < end_addr; addr += PAGE_SIZE)
+        virtual_memory_map(addr, addr, DEFAULT);
 }
 
-void kernel_main(multiboot_info_t* mbd, uint32_t magic) {
+void kernel_main(multiboot_info_t* mbd, uint magic) {
 	terminal_initialize();
-	printf("Hello, world\n");
+	printf("Hello, world %d\n", sizeof(int));
     // make sure the magic number matches for memory mapping
     if(magic != MULTIBOOT_BOOTLOADER_MAGIC) {
         // panic("invalid magic number!");
@@ -111,22 +121,23 @@ void kernel_main(multiboot_info_t* mbd, uint32_t magic) {
     loadPageDirectory(page_directory);
     enablePaging();
 
-
     // loop through the memory map and display the values 
-    printf("Le noyau occupe la RAM de %d à %d\n", start_addr, end_addr);
+    printf("Le noyau occupe la RAM de %x à %x\n", start_addr, end_addr);
     for(size_t i = 0; i < mbd->mmap_length; i += sizeof(multiboot_memory_map_t)) {
         multiboot_memory_map_t* mmmt = (multiboot_memory_map_t*) (mbd->mmap_addr + i);
 
-        printf("Start Addr: %u %u | Length: %u %u | Size: %u | Type: %u\n",
+        printf("Start Addr: %x %x | Length: %x %x | Size: %x | Type: %x\n",
             mmmt->addr_high, mmmt->addr_low, mmmt->len_high, mmmt->len_low, mmmt->size, mmmt->type);
 
-        if(mmmt->type == MULTIBOOT_MEMORY_AVAILABLE) {
-            /* 
-             * Do something with this memory block!
-             * BE WARNED that some of memory shown as availiable is actually 
-             * actively being used by the kernel! You'll need to take that
-             * into account before writing to memory!
-             */
-        }
+        // if(mmmt->type == MULTIBOOT_MEMORY_AVAILABLE) {
+        //     /* 
+        //      * Do something with this memory block!
+        //      * BE WARNED that some of memory shown as availiable is actually 
+        //      * actively being used by the kernel! You'll need to take that
+        //      * into account before writing to memory!
+        //      */
+        // }
     }
+    int n = 10000;
+    int* x = (int*)malloc(n*sizeof(int));
 }

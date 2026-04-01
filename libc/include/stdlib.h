@@ -2,6 +2,7 @@
 #define _STDLIB_H 1
 
 #include <sys/cdefs.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -9,6 +10,11 @@ extern "C" {
 
 __attribute__((__noreturn__))
 void abort(void);
+
+void* malloc(size_t memory);
+
+void srand(unsigned);
+int rand(void);
 
 #ifdef __cplusplus
 }
