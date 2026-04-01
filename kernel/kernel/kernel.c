@@ -96,9 +96,11 @@ void init_pagemap() {
         virtual_memory_map(addr, addr, DEFAULT);
 }
 
+void test_function(void);
+
 void kernel_main(multiboot_info_t* mbd, uint magic) {
 	terminal_initialize();
-	printf("Hello, world %d\n", sizeof(int));
+	printf("Hello, world\n");
     // make sure the magic number matches for memory mapping
     if(magic != MULTIBOOT_BOOTLOADER_MAGIC) {
         // panic("invalid magic number!");
@@ -138,6 +140,33 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         //      */
         // }
     }
+
+    test_function();
+}
+
+int compare(const void* a, const void* b) {
+    int* x = (int*) a;
+    int* y = (int*) b;
+    return *x - *y;
+}
+
+void test_function() {
     int n = 10000;
-    int* x = (int*)malloc(n*sizeof(int));
+    int* a = (int*)malloc(n*sizeof(int));
+    for(int i = 0; i < n; i++)
+        a[i] = rand() % (2 * n);
+    
+    // for(int i = 0; i < n; i++)
+    //     printf("%d ", a[i]);
+    // printf("\n");
+    qsort(a, n, sizeof(int), compare);
+    // for(int i = 0; i < n; i++)
+    //     printf("%d ", a[i]);
+    // printf("\n");
+
+    int nb_ok = 0;
+    for(int i = 1; i < n; i++)
+        if(a[i-1] <= a[i])
+            nb_ok++;
+    printf("%d\n", nb_ok);
 }

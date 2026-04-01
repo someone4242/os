@@ -33,6 +33,7 @@ stdio/printf.o \
 stdio/putchar.o \
 stdio/puts.o \
 stdlib/abort.o \
+stdlib/qsort.o \
 stdlib/malloc.o \
 stdlib/srand.o \
 string/memcmp.o \

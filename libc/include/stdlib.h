@@ -16,6 +16,8 @@ void* malloc(size_t memory);
 void srand(unsigned);
 int rand(void);
 
+void qsort(void* ptr, size_t n, size_t size, int (*compare)(const void *, const void *));
+
 #ifdef __cplusplus
 }
 #endif
