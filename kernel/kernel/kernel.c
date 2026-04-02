@@ -151,22 +151,16 @@ int compare(const void* a, const void* b) {
 }
 
 void test_function() {
+    printf("\n");
     int n = 10000;
     int* a = (int*)malloc(n*sizeof(int));
     for(int i = 0; i < n; i++)
         a[i] = rand() % (2 * n);
     
-    // for(int i = 0; i < n; i++)
-    //     printf("%d ", a[i]);
-    // printf("\n");
     qsort(a, n, sizeof(int), compare);
-    // for(int i = 0; i < n; i++)
-    //     printf("%d ", a[i]);
-    // printf("\n");
 
-    int nb_ok = 0;
+    bool ok = true;
     for(int i = 1; i < n; i++)
-        if(a[i-1] <= a[i])
-            nb_ok++;
-    printf("%d\n", nb_ok);
+        ok &= (a[i-1] <= a[i]);
+    printf("quicksort is ok ? %s\n", (ok ? "ok" : "not ok"));
 }
