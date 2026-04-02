@@ -55,6 +55,11 @@ uintptr_t alloc_physical_page() {
     uintptr_t page_addr = 0;
     while(page_addr < NB_PAGE && !is_free_physical_page(PAGEID(page_addr)))
         page_addr += PAGE_SIZE;
+
+    uint* page = (uint*)page_addr;
+    for(int i = 0; i < TABLE_SIZE; i++)
+        page[i] = 0;
+    
     pageinfo[PAGEID(page_addr)].flags = RESERVED;
     return page_addr;
 }
