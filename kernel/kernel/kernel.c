@@ -20,8 +20,6 @@ extern uint _kernel_end;
 extern void loadPageDirectory(uint *);
 extern void enablePaging();
 
-static uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
-
 #define FREE 0
 #define RESERVED 1
 
@@ -52,19 +50,21 @@ bool is_free_physical_page(uint pageid) {
 }
 
 uintptr_t alloc_physical_page() {
-    uintptr_t page_addr = 0;
+    uintptr_t page_addr = end_addr;
     while(page_addr < NB_PAGE && !is_free_physical_page(PAGEID(page_addr)))
         page_addr += PAGE_SIZE;
 
     uint* page = (uint*)page_addr;
     for(int i = 0; i < TABLE_SIZE; i++)
         page[i] = 0;
-    
+
     pageinfo[PAGEID(page_addr)].flags = RESERVED;
     return page_addr;
 }
 
 #define DEFAULT 0
+
+static uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 static void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t perm) {
     uint pagetable_id = virtual_addr >> 22;
     uint page_id = virtual_addr >> 12 & ((1 << 11) - 1);
@@ -93,11 +93,13 @@ uint alloc_virtual_page(size_t memory_size) {
     return virtual_addr;
 }
 
+static uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 void init_pagemap() {
     for (size_t i = 0; i < TABLE_SIZE; i++)
         page_directory[i] = 0x0002;
     
-    for(uint addr = 0; addr < end_addr; addr += PAGE_SIZE)
+    page_directory[0] = (uint)&first_pagetable | 3;
+    for(uint addr = 0; addr < end_addr + PAGE_SIZE * 50; addr += PAGE_SIZE)
         virtual_memory_map(addr, addr, DEFAULT);
 }
 
@@ -157,7 +159,7 @@ int compare(const void* a, const void* b) {
 
 void test_function() {
     printf("\n");
-    int n = 10000;
+    int n = 10;
     int* a = (int*)malloc(n*sizeof(int));
     for(int i = 0; i < n; i++)
         a[i] = rand() % (2 * n);
