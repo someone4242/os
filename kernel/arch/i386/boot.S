@@ -65,3 +65,84 @@ enablePaging:
     popl %ebp
     ret
 
+
+
+// GDT, IDT et ISRs
+
+.text
+.globl gdt_flush
+gdt_flush:
+    movl $0x10, %eax
+    movl %eax, %ds
+    movl %eax, %es
+    movl %eax, %fs
+    movl %eax, %gs
+    movl %eax, %ss
+    jmp .flush
+.flush:
+    ret
+
+
+interrupt_stub:
+    // A faire : push les registres d'environnement
+    // puis modifier la gestion d'arguments de `interrupt_dispatch`
+
+    call interrupt_dispatch
+
+    // A faire : pop les registres d'environnement
+
+    add $16, %esp       // retire int_num et err_code de la stack
+    iret
+
+
+
+.macro isr_err_stub n
+.globl isr_stub_\n
+.align 16
+isr_stub_\n :
+    pushl $\n           // int_num
+    jmp interrupt_stub
+.endm
+
+.macro isr_no_err_stub n
+.globl isr_stub_\n
+.align 16
+isr_stub_\n :
+    pushl $0            // err_code factice
+    pushl $\n           // int_num
+    jmp interrupt_stub
+.endm
+
+isr_no_err_stub 0
+isr_no_err_stub 1
+isr_no_err_stub 2
+isr_no_err_stub 3
+isr_no_err_stub 4
+isr_no_err_stub 5
+isr_no_err_stub 6
+isr_no_err_stub 7
+isr_err_stub    8
+isr_no_err_stub 9
+isr_err_stub    10
+isr_err_stub    11
+isr_err_stub    12
+isr_err_stub    13
+isr_err_stub    14
+isr_no_err_stub 15
+isr_no_err_stub 16
+isr_err_stub    17
+isr_no_err_stub 18
+isr_no_err_stub 19
+isr_no_err_stub 20
+isr_no_err_stub 21
+isr_no_err_stub 22
+isr_no_err_stub 23
+isr_no_err_stub 24
+isr_no_err_stub 25
+isr_no_err_stub 26
+isr_no_err_stub 27
+isr_no_err_stub 28
+isr_no_err_stub 29
+isr_err_stub    30
+isr_no_err_stub 31
+

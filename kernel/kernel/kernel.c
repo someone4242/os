@@ -105,12 +105,125 @@ void init_pagemap() {
 
 void test_function(void);
 
+
+
+
+/*
+ * Setting up the Global Descriptor Table (GDT)
+ */
+#define GDT_SIZE 5
+typedef struct {
+    uint16_t limit;
+    uint16_t base_low;
+    uint8_t base_mid;
+    uint8_t access;
+    uint8_t flags;
+    uint8_t base_high;
+} __attribute((packed)) gdt_desc_t;
+typedef struct {
+    uint16_t    size;
+    uint32_t    offset;
+} __attribute__((packed)) gdtr_t;
+
+static gdt_desc_t gdt[GDT_SIZE];
+static gdtr_t gdtr;
+
+extern void gdt_flush();
+
+static void setGdtEntry(int num, uint32_t base, uint32_t limit,
+                           uint8_t access, uint8_t gran) {
+    // limit should be <= 0xFFFFF
+
+    gdt[num].base_low = base & 0xFFFF;
+    gdt[num].base_mid = (base >> 16) & 0xFF;
+    gdt[num].base_high = (base >> 24) & 0xFF;
+
+    gdt[num].limit = (limit & 0xFFFF);
+    gdt[num].flags = (limit >> 16) & 0x0F;
+    gdt[num].flags |= (gran & 0xF0);
+
+    gdt[num].access = access;
+}
+
+void init_gdt() {
+    gdtr.size = GDT_SIZE * sizeof(gdt_desc_t) - 1;
+    gdtr.offset = (uint32_t)&gdt;
+
+    setGdtEntry(0, 0, 0, 0, 0); // Null
+    setGdtEntry(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // Kernel code
+    setGdtEntry(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // Kernel data
+    setGdtEntry(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // User code
+    setGdtEntry(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // User data
+
+    asm volatile ("lgdt %0" : : "m"(gdtr));
+    gdt_flush();
+}
+
+
+/*
+ * Setting up the Interrupt Descriptor Table (IDT)
+ */
+
+#define IDT_SIZE 256
+typedef struct {
+    uint16_t offset_low;
+    uint16_t seg;
+    uint8_t reserved;
+    uint8_t flags;
+    uint16_t offset_high;
+} __attribute__((packed)) idt_desc_t;
+typedef struct {
+    uint16_t    size;
+    uint32_t    offset;
+} __attribute__((packed)) idtr_t;
+
+static idt_desc_t idt[IDT_SIZE];
+static idtr_t idtr;
+extern void isr_stub_0();
+
+void setIdtEntry(uint8_t vector, void *isr, uint8_t flags) {
+    idt_desc_t *desc =(idt_desc_t *)&idt[vector];
+    desc->offset_low = (uint32_t)isr & 0xFFFF;
+    desc->offset_high = ((uint32_t)isr >> 16) & 0xFFFF;
+    desc->seg = 0x08;
+    desc->flags = flags;
+    desc->reserved = 0;
+}
+
+void init_idt() {
+    idtr.size = IDT_SIZE * sizeof(idt_desc_t) - 1;
+    idtr.offset = (uint32_t)&idt;
+
+    for (size_t i =0; i < IDT_SIZE; i++)
+        setIdtEntry(i, isr_stub_0 + (i*16), 0b10001110);
+
+    asm volatile ("lidt %0" : : "m"(idtr));
+}
+
+
+void interrupt_dispatch(uint32_t int_num, uint32_t err_code) {
+    printf("\nINT %d; err_code %x\n", int_num, err_code);
+    switch (int_num)
+    {
+        case 0:
+            printf("Division by 0\n");
+            break;
+        default:
+            printf("Unhandled interrupt\n");
+            break;
+    }
+    printf("Interrupt handled, halting...\n");
+    while (1) {};
+}
+
+
+
 void kernel_main(multiboot_info_t* mbd, uint magic) {
 	terminal_initialize();
 	printf("Hello, world\n");
     // make sure the magic number matches for memory mapping
     if(magic != MULTIBOOT_BOOTLOADER_MAGIC) {
-        // panic("invalid magic number!");
+       // panic("invalid magic number!");
 		printf("invalid magic number!\n");
 		return;
     }
@@ -122,6 +235,12 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
 		return;
     }
 
+
+    // init GDT, IDT and enable interrupts
+    init_gdt();
+    init_idt();
+    asm volatile("sti");
+
     // init physical allocator
     init_physical_pageinfo(mbd);
 
@@ -129,6 +248,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     init_pagemap();
     loadPageDirectory(page_directory);
     enablePaging();
+
 
     // loop through the memory map and display the values 
     printf("Le noyau occupe la RAM de %x à %x\n", start_addr, end_addr);
