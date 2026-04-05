@@ -172,7 +172,43 @@ void init_gdt() {
  * Setting up the Interrupt Descriptor Table (IDT)
  */
 
+// outb et inb, tiré du `x86.h` de weensyos
+static inline void outb(int port, uint8_t data) {
+  asm volatile("outb %0,%w1" : : "a"(data), "d"(port));
+}
+static inline uint8_t inb(int port) {
+  uint8_t data;
+  asm volatile("inb %w1,%0" : "=a"(data) : "d"(port));
+  return data;
+}
+
 #define IDT_SIZE 256
+
+#define PIC1 0x20
+#define PIC2 0xA0
+#define PIC1_COMMAND PIC1
+#define PIC1_DATA (PIC1+1)
+#define PIC2_COMMAND PIC2
+#define PIC2_DATA (PIC2+1)
+#define PIC_EOI 0x20
+
+#define ICW1_ICW4 0x01          /* Indicates that ICW4 will be present */
+#define ICW1_SINGLE 0x02        /* Single (cascade) mode */
+#define ICW1_INTERVAL4 0x04     /* Call address interval 4 (8) */
+#define ICW1_LEVEL 0x08         /* Level triggered (edge) mode */
+#define ICW1_INIT 0x10          /* Initialization - required! */
+
+#define ICW4_8086 0x01          /* 8086/88 (MCS-80/85) mode */
+#define ICW4_AUTO 0x02          /* Auto (normal) EOI */
+#define ICW4_BUF_SLAVE 0x08     /* Buffered mode/slave */
+#define ICW4_BUF_MASTER 0x0C    /* Buffered mode/master */
+#define ICW4_SFNM 0x10          /* Special fully nested (not) */
+
+#define CASCADE_IRQ 2
+
+#define KB_DATA 0x60
+#define KB_COMMAND 0x64
+
 typedef struct {
     uint16_t offset_low;
     uint16_t seg;
@@ -188,6 +224,54 @@ typedef struct {
 static idt_desc_t idt[IDT_SIZE];
 static idtr_t idtr;
 extern void isr_stub_0();
+extern void irq_stub_0();
+
+static uint16_t pic_enabled;
+
+static void PIC_mask() {
+    outb(PIC1_DATA, ~pic_enabled & 0xFF);
+    outb(PIC2_DATA, (~pic_enabled >> 8) & 0xFF);
+}
+
+static void PIC_sendEOI(uint8_t irq) {
+    if (irq >= 8) outb(PIC2_COMMAND, PIC_EOI);
+    outb(PIC1_COMMAND, PIC_EOI);
+}
+
+void PIC_disable() {
+    outb(PIC1_DATA, 0xFF);
+    outb(PIC2_DATA, 0xFF);
+}
+
+void PIC_remap(uint32_t offset1, uint32_t offset2) {
+    outb(PIC1_COMMAND, ICW1_INIT | ICW1_ICW4); // start (cascade) sequence
+    outb(PIC2_COMMAND, ICW1_INIT | ICW1_ICW4);
+
+    outb(PIC1_DATA, offset1);
+    outb(PIC2_DATA, offset2);
+
+    outb(PIC1_DATA, 1 << CASCADE_IRQ);
+    outb(PIC2_DATA, 2);
+
+    outb(PIC1_DATA, ICW4_8086);
+    outb(PIC2_DATA, ICW4_8086);
+
+    outb(PIC1_DATA, 0);
+    outb(PIC2_DATA, 0);
+}
+
+uint64_t ticks;
+const uint32_t freq = 100;
+
+void init_timer() {
+    // 119318.16666 Mhz
+    uint32_t divisor = 1193180 / freq;
+
+    outb(0x43, 0x36); // see osdev PIC page
+    outb(0x40, (uint8_t)(divisor & 0xFF));
+    outb(0x40, (uint8_t)((divisor >> 8) & 0xFF));
+}
+
 
 void setIdtEntry(uint8_t vector, void *isr, uint8_t flags) {
     idt_desc_t *desc =(idt_desc_t *)&idt[vector];
@@ -202,9 +286,21 @@ void init_idt() {
     idtr.size = IDT_SIZE * sizeof(idt_desc_t) - 1;
     idtr.offset = (uint32_t)&idt;
 
+    pic_enabled = 0x0000;
+    PIC_mask();
+
+    PIC_remap(0x20, 0x28);
+
+    pic_enabled = 0x0000; // masque tout pour l'instant
+    PIC_mask();
+
+    init_timer();
+
     for (size_t i =0; i < IDT_SIZE; i++)
-        setIdtEntry(i, (void*)((uintptr_t)isr_stub_0 + (i * 16)), 0b10001110);
-        // setIdtEntry(i, isr_stub_0 + (i*16), 0b10001110);
+        setIdtEntry(i, isr_stub_0 + (i * 16), 0x8E); // 0b10001110
+
+    for (size_t i = 0; i < 16; i++)
+        setIdtEntry(32 + i, irq_stub_0 + (i*16), 0x8E);
 
     asm volatile ("lidt %0" : : "m"(idtr));
 }
@@ -232,22 +328,24 @@ void interrupt_dispatch(uint32_t int_num, uint32_t err_code) {
     while (1) {};
 }
 
-static inline void outb(uint16_t port, uint8_t val) {
-    asm volatile("outb %0, %1" : : "a"(val), "Nd"(port));
+void irq_dispatch(uint32_t int_num) {
+    printf("\nIRQ %d raised\n", int_num);
+    switch (int_num)
+    {
+        case 0: //Timer
+            ticks++;
+            printf("Timze ticked\n");
+            break;
+        default:
+            printf("Unhandled irq\n");
+            break;
+    }
+    PIC_sendEOI(int_num);
+    printf("Irq handled, halting...\n");
+    while (1);
 }
 
-void remap_pic() {
-    outb(0x20, 0x11);
-    outb(0xA0, 0x11);
-    outb(0x21, 0x20);  // IRQ 0-7  → INT 32-39
-    outb(0xA1, 0x28);  // IRQ 8-15 → INT 40-47
-    outb(0x21, 0x04);
-    outb(0xA1, 0x02);
-    outb(0x21, 0x01);
-    outb(0xA1, 0x01);
-    outb(0x21, 0xFF);  // masque tout pour l'instant
-    outb(0xA1, 0xFF);
-}
+
 
 void kernel_main(multiboot_info_t* mbd, uint magic) {
 	terminal_initialize();
@@ -270,6 +368,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     // init GDT, IDT and enable interrupts
     init_gdt();
     init_idt();
+    asm volatile ("sti");
 
     // init physical allocator
     init_physical_pageinfo(mbd);
@@ -284,9 +383,6 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     printf("page_directory: %x\n", (uint)page_directory);
     printf("first_pagetable: %x\n", (uint)first_pagetable);
     printf("brk: %x\n", brk);
-
-    remap_pic();
-    asm volatile("sti");
 
 
     // loop through the memory map and display the values 
@@ -306,7 +402,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         //      */
         // }
     }
-    
+
     test_function();
 }
 

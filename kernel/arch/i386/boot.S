@@ -67,7 +67,7 @@ enablePaging:
 
 
 
-// GDT, IDT et ISRs
+// GDT, IDT, ISRs et IRQs
 
 .text
 .globl gdt_flush
@@ -94,6 +94,13 @@ interrupt_stub:
     add $16, %esp       // retire int_num et err_code de la stack
     iret
 
+irq_stub:
+    // même remarque
+
+    call irq_dispatch
+
+    add $8, %esp
+    iret
 
 
 .macro isr_err_stub n
@@ -145,4 +152,15 @@ isr_no_err_stub 28
 isr_no_err_stub 29
 isr_err_stub    30
 isr_no_err_stub 31
+
+
+.rept 16
+.globl irq_stub_\+
+.align 16
+irq_stub_\+ :
+    pushl $0
+    pushl $\+
+    jmp irq_stub
+.endr
+
 
