@@ -37,7 +37,7 @@ static void init_physical_pageinfo(multiboot_info_t* mbd) {
         multiboot_memory_map_t* mmmt = (multiboot_memory_map_t*) (mbd->mmap_addr + i);
 
         for(uint addr = mmmt->addr_low; addr < mmmt->addr_low+mmmt->len_low; addr += PAGE_SIZE) {
-            pageinfo[PAGEID(addr)].flags = mmmt->type - 1;
+            pageinfo[PAGEID(addr)].flags = (mmmt->type == 1 ? FREE : RESERVED);
         }
     }
     for(uint addr = start_addr; addr < end_addr; addr += PAGE_SIZE) {
@@ -50,33 +50,40 @@ bool is_free_physical_page(uint pageid) {
 }
 
 uintptr_t alloc_physical_page() {
-    uintptr_t page_addr = end_addr;
-    while(page_addr < NB_PAGE && !is_free_physical_page(PAGEID(page_addr)))
-        page_addr += PAGE_SIZE;
+    uint pageid = PAGEID(end_addr);
+    while(pageid < NB_PAGE && !is_free_physical_page(pageid))
+        pageid++;
 
-    uint* page = (uint*)page_addr;
-    for(int i = 0; i < TABLE_SIZE; i++)
-        page[i] = 0;
+    if(pageid >= NB_PAGE) {
+        // no more memory
+        return 0;
+    }
 
-    pageinfo[PAGEID(page_addr)].flags = RESERVED;
-    return page_addr;
+    pageinfo[pageid].flags = RESERVED;
+    return (uintptr_t)(pageid * PAGE_SIZE);
 }
 
 #define DEFAULT 0
 
+static uint* const recursive_pd = (uint*)0xFFFFF000;
+static uint* const recursive_pt = (uint*)0xFFC00000;
+
 static uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 static void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t perm) {
-    uint pagetable_id = virtual_addr >> 22;
-    uint page_id = virtual_addr >> 12 & ((1 << 11) - 1);
+    uint pdx = virtual_addr >> 22;
+    uint ptx = (virtual_addr >> 12) & 0x3FF;
 
-    if((page_directory[pagetable_id] & 1) == 0) {
+    if((recursive_pd[pdx] & 1) == 0) {
         // the page isn't present
-        page_directory[pagetable_id] = alloc_physical_page() | perm | 3;
+        recursive_pd[pdx] = alloc_physical_page() | perm | 3;
+
+        // we clean up the table
+        uint* table_virt = (uint*)(0xFFC00000 + (pdx << 12));
+        for(int i = 0; i < 1024; i++) table_virt[i] = 0;
     }
 
-    uint* pagetable_addr = (uint*)((page_directory[pagetable_id] >> 12) << 12);
-
-    pagetable_addr[page_id] = physical_addr | perm | 3;
+    recursive_pt[virtual_addr >> 12] = physical_addr | perm | 3;
+    asm volatile("invlpg (%0)" :: "r"(virtual_addr) : "memory");
 }
 
 // we allocate the virtual addresses incrementally
@@ -99,8 +106,9 @@ void init_pagemap() {
         page_directory[i] = 0x0002;
     
     page_directory[0] = (uint)&first_pagetable | 3;
-    for(uint addr = 0; addr < end_addr + PAGE_SIZE * 50; addr += PAGE_SIZE)
-        virtual_memory_map(addr, addr, DEFAULT);
+    page_directory[TABLE_SIZE-1] = (uint)page_directory | 3;
+    for(uint ptx = 0; ptx < TABLE_SIZE; ptx++)
+        first_pagetable[ptx] = (ptx << 12) | 3;
 }
 
 void test_function(void);
@@ -195,7 +203,8 @@ void init_idt() {
     idtr.offset = (uint32_t)&idt;
 
     for (size_t i =0; i < IDT_SIZE; i++)
-        setIdtEntry(i, isr_stub_0 + (i*16), 0b10001110);
+        setIdtEntry(i, (void*)((uintptr_t)isr_stub_0 + (i * 16)), 0b10001110);
+        // setIdtEntry(i, isr_stub_0 + (i*16), 0b10001110);
 
     asm volatile ("lidt %0" : : "m"(idtr));
 }
@@ -208,6 +217,13 @@ void interrupt_dispatch(uint32_t int_num, uint32_t err_code) {
         case 0:
             printf("Division by 0\n");
             break;
+        case 14:
+        {
+            uint32_t cr2;
+            asm volatile("mov %%cr2, %0" : "=r"(cr2));
+            printf("Page fault at address %x, err_code %x\n", cr2, err_code);
+        }
+        break;
         default:
             printf("Unhandled interrupt\n");
             break;
@@ -216,7 +232,22 @@ void interrupt_dispatch(uint32_t int_num, uint32_t err_code) {
     while (1) {};
 }
 
+static inline void outb(uint16_t port, uint8_t val) {
+    asm volatile("outb %0, %1" : : "a"(val), "Nd"(port));
+}
 
+void remap_pic() {
+    outb(0x20, 0x11);
+    outb(0xA0, 0x11);
+    outb(0x21, 0x20);  // IRQ 0-7  → INT 32-39
+    outb(0xA1, 0x28);  // IRQ 8-15 → INT 40-47
+    outb(0x21, 0x04);
+    outb(0xA1, 0x02);
+    outb(0x21, 0x01);
+    outb(0xA1, 0x01);
+    outb(0x21, 0xFF);  // masque tout pour l'instant
+    outb(0xA1, 0xFF);
+}
 
 void kernel_main(multiboot_info_t* mbd, uint magic) {
 	terminal_initialize();
@@ -239,7 +270,6 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     // init GDT, IDT and enable interrupts
     init_gdt();
     init_idt();
-    asm volatile("sti");
 
     // init physical allocator
     init_physical_pageinfo(mbd);
@@ -248,6 +278,15 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     init_pagemap();
     loadPageDirectory(page_directory);
     enablePaging();
+
+    printf("kernel: %x - %x\n", start_addr, end_addr);
+    printf("pageinfo: %x - %x\n", (uint)pageinfo, (uint)pageinfo + sizeof(pageinfo));
+    printf("page_directory: %x\n", (uint)page_directory);
+    printf("first_pagetable: %x\n", (uint)first_pagetable);
+    printf("brk: %x\n", brk);
+
+    remap_pic();
+    asm volatile("sti");
 
 
     // loop through the memory map and display the values 
@@ -267,7 +306,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         //      */
         // }
     }
-
+    
     test_function();
 }
 
@@ -279,7 +318,7 @@ int compare(const void* a, const void* b) {
 
 void test_function() {
     printf("\n");
-    int n = 10;
+    int n = 10000000;
     int* a = (int*)malloc(n*sizeof(int));
     for(int i = 0; i < n; i++)
         a[i] = rand() % (2 * n);
