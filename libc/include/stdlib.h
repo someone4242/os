@@ -12,6 +12,7 @@ __attribute__((__noreturn__))
 void abort(void);
 
 void* malloc(size_t memory);
+void free(void* ptr);
 
 void srand(unsigned);
 int rand(void);

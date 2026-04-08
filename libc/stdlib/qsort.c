@@ -20,8 +20,7 @@ int rand(void);
 
 void qsort(void* ptr, size_t n, size_t size, int (*compare)(const void *, const void *)) {
     if(n <= 1) return;
-    // size_t pivot = rand() % n;
-    size_t pivot = 0;
+    size_t pivot = rand() % n;
     swap(ptr, ptr + size * pivot, size);
 
     size_t l = 1, r = n-1;
@@ -34,6 +33,6 @@ void qsort(void* ptr, size_t n, size_t size, int (*compare)(const void *, const 
         }
     }
     swap(ptr, ptr + size * r, size);
-    qsort(ptr, l-1, size, compare);
-    qsort(ptr + size * l, n-l, size, compare);
+    qsort(ptr, r, size, compare);                    
+    qsort(ptr + size * (r+1), n - r - 1, size, compare);
 }

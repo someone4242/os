@@ -10,7 +10,7 @@
 #define PAGE_SIZE 4096
 #define TABLE_SIZE 1024
 #define NB_PAGE (1 << 20)
-#define PAGEID(ptr) ((int)((uintptr_t)(ptr) >> 12))
+#define PAGEID(ptr) ((uint)((uintptr_t)(ptr) >> 12))
 
 extern uint _kernel_start;
 extern uint _kernel_end;
@@ -49,13 +49,20 @@ bool is_free_physical_page(uint pageid) {
     return pageinfo[pageid].flags == FREE;
 }
 
-uintptr_t alloc_physical_page() {
-    uint pageid = PAGEID(end_addr);
-    while(pageid < NB_PAGE && !is_free_physical_page(pageid))
-        pageid++;
+uint pageid = NB_PAGE;
+static uint* const recursive_pd = (uint*)0xFFFFF000;
+static uint* const recursive_pt = (uint*)0xFFC00000;
 
-    if(pageid >= NB_PAGE) {
-        // no more memory
+uintptr_t alloc_physical_page() {
+    if(pageid == NB_PAGE) pageid = PAGEID(end_addr);
+    uint cnt = 0;
+    while(cnt < NB_PAGE && !is_free_physical_page(pageid)) {
+        pageid++, cnt++;
+        if(pageid == PAGEID((uint)recursive_pt))
+            pageid = PAGEID(end_addr);
+    }
+    if(cnt == NB_PAGE) {
+        // panic : memory limit exceeded
         return 0;
     }
 
@@ -65,13 +72,9 @@ uintptr_t alloc_physical_page() {
 
 #define DEFAULT 0
 
-static uint* const recursive_pd = (uint*)0xFFFFF000;
-static uint* const recursive_pt = (uint*)0xFFC00000;
-
 static uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 static void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t perm) {
     uint pdx = virtual_addr >> 22;
-    uint ptx = (virtual_addr >> 12) & 0x3FF;
 
     if((recursive_pd[pdx] & 1) == 0) {
         // the page isn't present
@@ -98,6 +101,81 @@ uint alloc_virtual_page(size_t memory_size) {
         virtual_memory_map(virtual_addr + i_page * PAGE_SIZE, physical_addr, DEFAULT);
     }
     return virtual_addr;
+}
+
+static uint SAFE_BLOCK_NUMBER = 0x15366593;
+
+typedef struct block {
+    size_t size;
+    bool free;
+    uint magic_number;
+    struct block* next;
+    struct block* prev;
+} block;
+
+static block* first_block = NULL;
+
+void add_block(size_t memory_size) {
+    size_t first_alloc = memory_size + (sizeof(int) * (1 << 22));
+    block* ptr = (block*)alloc_virtual_page(first_alloc + sizeof(block));
+    ptr->size = first_alloc;
+    ptr->free = true;
+    ptr->prev = NULL;
+    ptr->next = first_block;
+    ptr->magic_number = SAFE_BLOCK_NUMBER;
+    first_block = ptr;
+}
+
+block* find_free_block(block* cur_block, size_t memory_size) {
+    if(cur_block == NULL) return NULL;
+    if(cur_block->free && cur_block->size >= memory_size)
+        return cur_block;
+    return find_free_block(cur_block->next, memory_size);
+}
+
+uint kmalloc(size_t memory_size) {
+    block* free_block = find_free_block(first_block, memory_size);
+    if(free_block == NULL) {
+        add_block(memory_size);
+        free_block = first_block;
+    }
+
+    if(free_block->size > memory_size + 2 * sizeof(block)) {
+        // we cut the block in two
+        block* new_block = (block*)((uint)free_block + free_block->size - memory_size);
+        new_block->next = free_block->next;
+        new_block->prev = free_block;
+        new_block->size = memory_size;
+        new_block->free = false;
+        new_block->magic_number = SAFE_BLOCK_NUMBER;
+
+        free_block->next = new_block;
+        free_block->size -= memory_size + sizeof(block);
+        return (uint)new_block;
+    } else {
+        free_block->free = false;
+        return (uint)free_block + sizeof(block);
+    }
+}
+
+void merge_with_next_block(block* cur_block) {
+    cur_block->next = cur_block->next->next;
+    cur_block->size += cur_block->next->size + sizeof(block);
+    if(cur_block->next != NULL)
+        cur_block->next->prev = cur_block;
+}
+
+void kfree(void* ptr) {
+    block* free_block = (block*)ptr - 1;
+    if(free_block->magic_number != SAFE_BLOCK_NUMBER) {
+        // panic : the pointer is wrong
+        return;
+    }
+    free_block->free = true;
+    if(free_block->next != NULL && free_block->next->free == true)
+        merge_with_next_block(free_block);
+    if(free_block->prev != NULL && free_block->prev->free == true)
+        merge_with_next_block(free_block->prev);
 }
 
 static uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
@@ -378,6 +456,8 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     loadPageDirectory(page_directory);
     enablePaging();
 
+    SAFE_BLOCK_NUMBER = rand();
+
     printf("kernel: %x - %x\n", start_addr, end_addr);
     printf("pageinfo: %x - %x\n", (uint)pageinfo, (uint)pageinfo + sizeof(pageinfo));
     printf("page_directory: %x\n", (uint)page_directory);
@@ -414,7 +494,7 @@ int compare(const void* a, const void* b) {
 
 void test_function() {
     printf("\n");
-    int n = 10000000;
+    int n = 1000000;
     int* a = (int*)malloc(n*sizeof(int));
     for(int i = 0; i < n; i++)
         a[i] = rand() % (2 * n);
