@@ -59,7 +59,7 @@ enablePaging:
     push %ebp
     movl %esp, %ebp
     movl %cr0, %eax
-    orl $0x80000000, %eax
+    orl $0x80000001, %eax
     movl %eax, %cr0
     movl %ebp, %esp
     popl %ebp
@@ -72,35 +72,59 @@ enablePaging:
 .text
 .globl gdt_flush
 gdt_flush:
-    movl $0x10, %eax
-    movl %eax, %ds
-    movl %eax, %es
-    movl %eax, %fs
-    movl %eax, %gs
-    movl %eax, %ss
-    jmp .flush
+    mov $0x10, %ax
+    mov %ax, %ds
+    mov %ax, %es
+    mov %ax, %fs
+    mov %ax, %gs
+    mov %ax, %ss
+    ljmp $0x08, $.flush
 .flush:
     ret
 
 
 interrupt_stub:
-    // A faire : push les registres d'environnement
-    // puis modifier la gestion d'arguments de `interrupt_dispatch`
+    // pusha
 
+    pushw %ds
+    pushw %es
+    pushw %fs
+    pushw %gs
+
+    pushl %esp
     call interrupt_dispatch
+    movl %eax, %esp         // se place à la stack renvoyée
 
-    // A faire : pop les registres d'environnement
+    popw %gs
+    popw %fs
+    popw %es
+    popw %ds
 
-    add $16, %esp       // retire int_num et err_code de la stack
+    // popa
+    add $8, %esp            // retire int_num et err_code de la stack
     iret
 
 irq_stub:
-    // même remarque
+    // pusha
 
+    pushw %ds
+    pushw %es
+    pushw %fs
+    pushw %gs
+
+    pushl %esp
     call irq_dispatch
+    movl %eax, %esp         // se place à la stack renvoyée
 
-    add $8, %esp
+    popw %gs
+    popw %fs
+    popw %es
+    popw %ds
+
+    //popa
+    add $8, %esp            // retire int_num et err_code de la stack
     iret
+
 
 
 .macro isr_err_stub n

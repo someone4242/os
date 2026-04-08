@@ -296,13 +296,13 @@ static void setGdtEntry(int num, uint32_t base, uint32_t limit,
 
 void init_gdt() {
     gdtr.size = GDT_SIZE * sizeof(gdt_desc_t) - 1;
-    gdtr.offset = (uint32_t)&gdt;
+    gdtr.offset = (uint32_t)gdt;
 
     setGdtEntry(0, 0, 0, 0, 0); // Null
-    setGdtEntry(1, 0, 0xFFFFFFFF, 0x9A, 0xCF); // Kernel code
-    setGdtEntry(2, 0, 0xFFFFFFFF, 0x92, 0xCF); // Kernel data
-    setGdtEntry(3, 0, 0xFFFFFFFF, 0xFA, 0xCF); // User code
-    setGdtEntry(4, 0, 0xFFFFFFFF, 0xF2, 0xCF); // User data
+    setGdtEntry(1, 0, 0xFFFFF, 0x9A, 0xCF); // Kernel code
+    setGdtEntry(2, 0, 0xFFFFF, 0x92, 0xCF); // Kernel data
+    setGdtEntry(3, 0, 0xFFFFF, 0xFA, 0xCF); // User code
+    setGdtEntry(4, 0, 0xFFFFF, 0xF2, 0xCF); // User data
 
     asm volatile ("lgdt %0" : : "m"(gdtr));
     gdt_flush();
@@ -430,14 +430,14 @@ void init_idt() {
     pic_enabled = 0x0000;
     PIC_mask();
 
-    PIC_remap(0x20, 0x28);
+    PIC_remap(0x20, 0x28); // IRQs sont les interrupts de 32 à 47
 
-    pic_enabled = 0x0000; // masque tout pour l'instant
+    pic_enabled = 0x0002; // bit0:Timer ; bit1:Keyboard
     PIC_mask();
 
     init_timer();
 
-    for (size_t i =0; i < IDT_SIZE; i++)
+    for (size_t i = 0; i < IDT_SIZE; i++)
         setIdtEntry(i, isr_stub_0 + (i * 16), 0x8E); // 0b10001110
 
     for (size_t i = 0; i < 16; i++)
@@ -446,22 +446,51 @@ void init_idt() {
     asm volatile ("lidt %0" : : "m"(idtr));
 }
 
+typedef struct {
+    uint16_t gs, fs, es, ds;
+    // uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
+    uint32_t int_num, err_code;
+    uint32_t eip, cs, eflags, useresp, ss;
+} __attribute__((packed)) int_regs;
 
-void interrupt_dispatch(uint32_t int_num, uint32_t err_code) {
-    printf("\nINT %d; err_code %x\n", int_num, err_code);
-    switch (int_num)
+void print_int_regs(int_regs *r) {
+    printf("PRINTING INT REGISTERS:\n");
+    printf("  ds %x; es %x; fs %x; gs %x\n", r->ds, r->es, r->fs, r->gs);
+    printf("  int_num %x; err_code %x\n", r->int_num, r->err_code);
+    printf("  eip %x; cs %x; eflags %x; useresp %x; ss %x\n",
+            r->eip, r->cs, r->eflags, r->useresp, r->ss);
+}
+
+void hexdump(uint32_t longs, uint32_t *ptr) {
+    printf("HEXDUMP AT %x :", (uint32_t)ptr);
+    for (int i = 0; i < longs; i++) {
+        if (i % 4 == 0) printf("\n  Long %d to %d --", i, i+3);
+        printf(" %x", *(ptr + i));
+    }
+    putchar('\n');
+}
+
+int_regs *interrupt_dispatch(int_regs *context) {
+    printf("\nINT %d; err_code %x\n", context->int_num, context->err_code);
+    switch (context->int_num)
     {
         case 0:
             printf("Division by 0\n");
             break;
         case 6:
-            printf("Invalid opcode at eip: ??? \n");
-            // idéalement afficher eip depuis la stack frame
+            printf("Invalid opcode at eip: %x\n", context->eip);
+            break;
+        case 13 :
+            printf("General Protection Fault");
+            if (context->err_code != 0)
+                printf(" with segment selector %x", context->err_code);
+            putchar('\n');
             break;
         case 14: {
                 uint32_t cr2;
                 asm volatile("mov %%cr2, %0" : "=r"(cr2));
-                printf("Page fault at address %d, err_code %x\n", cr2, err_code);
+                printf("Page fault at address %d, err_code %x\n",
+                        cr2, context->err_code);
             }
             break;
         default:
@@ -470,23 +499,27 @@ void interrupt_dispatch(uint32_t int_num, uint32_t err_code) {
     }
     printf("Interrupt handled, halting...\n");
     while (1) {};
+    // return context
 }
 
-void irq_dispatch(uint32_t int_num) {
-    printf("\nIRQ %d raised\n", int_num);
-    switch (int_num)
+uint32_t irq_dispatch(int_regs *context) {
+    printf("\nIRQ %d raised\n", context->int_num);
+    switch (context->int_num)
     {
-        case 0: //Timer
+        case 0: // Timer
             ticks++;
-            printf("Timze ticked\n");
+            printf("Time ticked\n");
+            break;
+        case 1: // Keyboard
+            printf("Key pressed\n");
             break;
         default:
             printf("Unhandled irq\n");
             break;
     }
-    PIC_sendEOI(int_num);
-    printf("Irq handled, halting...\n");
-    while (1);
+    PIC_sendEOI(context->int_num);
+    printf("Irq handled\n");
+    return (uint32_t)context;
 }
 
 
@@ -548,7 +581,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         //      */
         // }
     }
-
+    /*
     test_function();
 
     int n = 10;
@@ -567,6 +600,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         print_memory(first_block);
         printf("\n");
     }
+    */
 }
 
 int compare(const void* a, const void* b) {
