@@ -84,7 +84,7 @@ gdt_flush:
 
 
 interrupt_stub:
-    // pusha
+    pusha
 
     pushw %ds
     pushw %es
@@ -100,12 +100,13 @@ interrupt_stub:
     popw %es
     popw %ds
 
-    // popa
+    popa
     add $8, %esp            // retire int_num et err_code de la stack
+    sti
     iret
 
 irq_stub:
-    // pusha
+    pusha
 
     pushw %ds
     pushw %es
@@ -121,8 +122,9 @@ irq_stub:
     popw %es
     popw %ds
 
-    //popa
+    popa
     add $8, %esp            // retire int_num et err_code de la stack
+    sti
     iret
 
 
@@ -131,6 +133,7 @@ irq_stub:
 .globl isr_stub_\n
 .align 16
 isr_stub_\n :
+    cli
     pushl $\n           // int_num
     jmp interrupt_stub
 .endm
@@ -139,10 +142,22 @@ isr_stub_\n :
 .globl isr_stub_\n
 .align 16
 isr_stub_\n :
+    cli
     pushl $0            // err_code factice
     pushl $\n           // int_num
     jmp interrupt_stub
 .endm
+
+.rept 16
+.globl irq_stub_\+
+.align 16
+irq_stub_\+ :
+    cli
+    pushl $0
+    pushl $\+
+    jmp irq_stub
+.endr
+
 
 isr_no_err_stub 0
 isr_no_err_stub 1
@@ -176,15 +191,5 @@ isr_no_err_stub 28
 isr_no_err_stub 29
 isr_err_stub    30
 isr_no_err_stub 31
-
-
-.rept 16
-.globl irq_stub_\+
-.align 16
-irq_stub_\+ :
-    pushl $0
-    pushl $\+
-    jmp irq_stub
-.endr
 
 

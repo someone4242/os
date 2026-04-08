@@ -402,11 +402,12 @@ void PIC_remap(uint32_t offset1, uint32_t offset2) {
 }
 
 uint64_t ticks;
-const uint32_t freq = 100;
+uint32_t intern_freq = 1193182; // Hz
+const uint32_t user_freq = 100; // Hz
+// intern_freq / user_freq sera retenu, seulement sur 16 bits
 
 void init_timer() {
-    // 119318.16666 Mhz
-    uint32_t divisor = 1193180 / freq;
+    uint16_t divisor = intern_freq / user_freq;
 
     outb(0x43, 0x36); // see osdev PIC page
     outb(0x40, (uint8_t)(divisor & 0xFF));
@@ -427,6 +428,8 @@ void init_idt() {
     idtr.size = IDT_SIZE * sizeof(idt_desc_t) - 1;
     idtr.offset = (uint32_t)&idt;
 
+    // init_timer();
+
     pic_enabled = 0x0000;
     PIC_mask();
 
@@ -435,7 +438,6 @@ void init_idt() {
     pic_enabled = 0x0002; // bit0:Timer ; bit1:Keyboard
     PIC_mask();
 
-    init_timer();
 
     for (size_t i = 0; i < IDT_SIZE; i++)
         setIdtEntry(i, isr_stub_0 + (i * 16), 0x8E); // 0b10001110
@@ -448,7 +450,7 @@ void init_idt() {
 
 typedef struct {
     uint16_t gs, fs, es, ds;
-    // uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
+    uint32_t edi, esi, ebp, esp, ebx, edx, ecx, eax;
     uint32_t int_num, err_code;
     uint32_t eip, cs, eflags, useresp, ss;
 } __attribute__((packed)) int_regs;
@@ -463,7 +465,7 @@ void print_int_regs(int_regs *r) {
 
 void hexdump(uint32_t longs, uint32_t *ptr) {
     printf("HEXDUMP AT %x :", (uint32_t)ptr);
-    for (int i = 0; i < longs; i++) {
+    for (uint32_t i = 0; i < longs; i++) {
         if (i % 4 == 0) printf("\n  Long %d to %d --", i, i+3);
         printf(" %x", *(ptr + i));
     }
@@ -502,8 +504,7 @@ int_regs *interrupt_dispatch(int_regs *context) {
     // return context
 }
 
-uint32_t irq_dispatch(int_regs *context) {
-    printf("\nIRQ %d raised\n", context->int_num);
+int_regs *irq_dispatch(int_regs *context) {
     switch (context->int_num)
     {
         case 0: // Timer
@@ -511,15 +512,16 @@ uint32_t irq_dispatch(int_regs *context) {
             printf("Time ticked\n");
             break;
         case 1: // Keyboard
+            (void)(inb(0x60) & 0x7F);
+            (void)(inb(0x60) & 0x80);
             printf("Key pressed\n");
             break;
         default:
-            printf("Unhandled irq\n");
+            printf("IRQ %d : Unhandled irq\n", context->int_num);
             break;
     }
     PIC_sendEOI(context->int_num);
-    printf("Irq handled\n");
-    return (uint32_t)context;
+    return context;
 }
 
 
@@ -581,7 +583,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         //      */
         // }
     }
-    /*
+
     test_function();
 
     int n = 10;
@@ -600,7 +602,9 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         print_memory(first_block);
         printf("\n");
     }
-    */
+
+
+    while (1); // à garder, si aucun processus implémenté
 }
 
 int compare(const void* a, const void* b) {
