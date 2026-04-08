@@ -67,6 +67,9 @@ int printf(const char* restrict format, ...) {
 					char c = (d % 10) + '0';
 					d = d / 10;
 					buffer[i++] = c;
+					// if(i % 4 == 3) {
+					// 	buffer[i++] = '.';
+					// }
 				}
 				if (has_a_sign) {
 					buffer[i++] = '-';

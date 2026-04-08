@@ -63,6 +63,7 @@ uintptr_t alloc_physical_page() {
     }
     if(cnt == NB_PAGE) {
         // panic : memory limit exceeded
+        printf("memory limit exceeded\n");
         return 0;
     }
 
@@ -90,11 +91,13 @@ static void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t pe
 }
 
 // we allocate the virtual addresses incrementally
-uint brk = end_addr;
+uint brk = TABLE_SIZE * PAGE_SIZE;
 uint alloc_virtual_page(size_t memory_size) {
     uint nb_pages = ((uint)memory_size + PAGE_SIZE - 1) / PAGE_SIZE;
     uint virtual_addr = brk;
+    printf("virtual allocation : from %d", brk);
     brk += PAGE_SIZE * nb_pages;
+    printf(" to %d\n", brk);
     for(uint i_page = 0; i_page < nb_pages; i_page++) {
         uint physical_addr = (uint)alloc_physical_page();
 
@@ -114,16 +117,63 @@ typedef struct block {
 } block;
 
 static block* first_block = NULL;
+static block* last_block = NULL;
+
+void print_memory(block* bloc) {
+    if(bloc == NULL) return;
+    printf("ptr : %d, size : %d, free : %s, next : %d, prev : %d\n", (uint)bloc, bloc->size, (bloc->free ? "yes" : "no"), (uint)bloc->next, (uint)bloc->prev);
+    print_memory(bloc->next);
+}
+
+block* get_new_block(size_t memory_size) {
+    block* ptr = (block*)alloc_virtual_page(memory_size + sizeof(block));
+    ptr->size = memory_size;
+    ptr->free = true;
+    ptr->next = NULL;
+    ptr->prev = NULL;
+    ptr->magic_number = SAFE_BLOCK_NUMBER;
+    return ptr;
+}
+
+void push_back(block* cur_block) {
+    if(first_block == NULL) {
+        last_block = first_block = cur_block;
+    } else {
+        last_block->next = cur_block;
+        cur_block->prev = last_block;
+        last_block = cur_block;
+    }
+}
 
 void add_block(size_t memory_size) {
-    size_t first_alloc = memory_size + (sizeof(int) * (1 << 22));
-    block* ptr = (block*)alloc_virtual_page(first_alloc + sizeof(block));
-    ptr->size = first_alloc;
-    ptr->free = true;
-    ptr->prev = NULL;
-    ptr->next = first_block;
-    ptr->magic_number = SAFE_BLOCK_NUMBER;
-    first_block = ptr;
+    size_t mem_alloc = memory_size + (sizeof(int) * (1 << 20));
+    block* ptr = get_new_block(mem_alloc);
+
+    // printf("first block %d, last block %d\n", (uint)first_block, (uint)last_block);
+    push_back(ptr);
+}
+
+block* split_block(block* cur_block, size_t memory_size) {
+    // printf("trying to cut in half\n");
+    block* new_block = (block*)((uint)cur_block + cur_block->size - memory_size);
+    // printf("new pointer : %x\n", (uint)new_block);
+    new_block->prev = cur_block;
+    // printf("nouveau bloc alloué\n");
+    new_block->size = memory_size;
+    new_block->free = false;
+    new_block->magic_number = SAFE_BLOCK_NUMBER;
+    new_block->next = cur_block->next;
+
+    cur_block->next = new_block;
+    cur_block->size -= memory_size + sizeof(block);
+
+    if(last_block == cur_block) last_block = new_block;
+    else new_block->next->prev = new_block;
+
+    // printf("current free list state :\n");
+    // print_memory(first_block);
+    // printf("\n");
+    return new_block;
 }
 
 block* find_free_block(block* cur_block, size_t memory_size) {
@@ -134,48 +184,61 @@ block* find_free_block(block* cur_block, size_t memory_size) {
 }
 
 uint kmalloc(size_t memory_size) {
+    // printf("kmalloc %d\n", memory_size);
     block* free_block = find_free_block(first_block, memory_size);
+    // printf("free bloc trouvé %d\n", (uint)free_block);
     if(free_block == NULL) {
+        // printf("demande d'un nouveau bloc\n");
         add_block(memory_size);
-        free_block = first_block;
+        free_block = last_block;
     }
+    // printf("free list state before malloc :\n");
+    // print_memory(first_block);
+    // printf("\n");
 
     if(free_block->size > memory_size + 2 * sizeof(block)) {
         // we cut the block in two
-        block* new_block = (block*)((uint)free_block + free_block->size - memory_size);
-        new_block->next = free_block->next;
-        new_block->prev = free_block;
-        new_block->size = memory_size;
-        new_block->free = false;
-        new_block->magic_number = SAFE_BLOCK_NUMBER;
-
-        free_block->next = new_block;
-        free_block->size -= memory_size + sizeof(block);
-        return (uint)new_block;
+        block* new_block = split_block(free_block, memory_size);
+        return (uint)new_block + sizeof(block);
     } else {
         free_block->free = false;
+        // printf("current free list state :\n");
+        // print_memory(first_block);
+        // printf("\n");
         return (uint)free_block + sizeof(block);
     }
 }
 
 void merge_with_next_block(block* cur_block) {
-    cur_block->next = cur_block->next->next;
     cur_block->size += cur_block->next->size + sizeof(block);
+    cur_block->next = cur_block->next->next;
     if(cur_block->next != NULL)
         cur_block->next->prev = cur_block;
+    if(cur_block->next == NULL) last_block = cur_block;
 }
 
 void kfree(void* ptr) {
     block* free_block = (block*)ptr - 1;
+    printf("freeing pointer %d\n", (uint)free_block);
     if(free_block->magic_number != SAFE_BLOCK_NUMBER) {
         // panic : the pointer is wrong
+        printf("the pointer given to kfree is wrong\n");
         return;
     }
     free_block->free = true;
+    // printf("current free list state before free :\n");
+    // print_memory(first_block);
+    // printf("\n");
     if(free_block->next != NULL && free_block->next->free == true)
         merge_with_next_block(free_block);
+    // printf("current free list state during free :\n");
+    // print_memory(first_block);
+    // printf("\n");
     if(free_block->prev != NULL && free_block->prev->free == true)
         merge_with_next_block(free_block->prev);
+    // printf("current free list state after free :\n");
+    // print_memory(first_block);
+    // printf("\n");
 }
 
 static uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
@@ -391,13 +454,16 @@ void interrupt_dispatch(uint32_t int_num, uint32_t err_code) {
         case 0:
             printf("Division by 0\n");
             break;
-        case 14:
-        {
-            uint32_t cr2;
-            asm volatile("mov %%cr2, %0" : "=r"(cr2));
-            printf("Page fault at address %x, err_code %x\n", cr2, err_code);
-        }
-        break;
+        case 6:
+            printf("Invalid opcode at eip: ??? \n");
+            // idéalement afficher eip depuis la stack frame
+            break;
+        case 14: {
+                uint32_t cr2;
+                asm volatile("mov %%cr2, %0" : "=r"(cr2));
+                printf("Page fault at address %d, err_code %x\n", cr2, err_code);
+            }
+            break;
         default:
             printf("Unhandled interrupt\n");
             break;
@@ -484,6 +550,23 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     }
 
     test_function();
+
+    int n = 10;
+    uint** ptr = (uint**)malloc(sizeof(uint*) * n);
+    for(int i = 0; i < n; i++) {
+        uint sz = (rand() % 500000);
+        printf("asked for %d bytes\n", sizeof(uint)*sz);
+        ptr[i] = (uint*)malloc(sizeof(uint)*sz);
+        test_function();
+    }
+
+    int p[] = {1, 7, 9, 0, 8, 4, 2, 5, 6, 3};
+    for(int i = 0; i < n; i++) {
+        free(ptr[p[i]]);
+        printf("current free list state :\n");
+        print_memory(first_block);
+        printf("\n");
+    }
 }
 
 int compare(const void* a, const void* b) {
@@ -493,9 +576,11 @@ int compare(const void* a, const void* b) {
 }
 
 void test_function() {
-    printf("\n");
+    // printf("\n");
     int n = 1000000;
     int* a = (int*)malloc(n*sizeof(int));
+
+    // printf("adresse du tableau : %d\n", (uint)a);
     for(int i = 0; i < n; i++)
         a[i] = rand() % (2 * n);
     
@@ -505,4 +590,7 @@ void test_function() {
     for(int i = 1; i < n; i++)
         ok &= (a[i-1] <= a[i]);
     printf("quicksort is ok ? %s\n", (ok ? "ok" : "not ok"));
+
+    // printf("pointeur du tableau : %d\n", (uint)a);
+    free(a);
 }
