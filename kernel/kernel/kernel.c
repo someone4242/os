@@ -512,10 +512,11 @@ int_regs *irq_dispatch(int_regs *context) {
             printf("Time ticked\n");
             break;
         case 1: // Keyboard
-            (void)(inb(0x60) & 0x7F);
-            (void)(inb(0x60) & 0x80);
-            printf("Key pressed\n");
+        {
+            uint8_t scancode = inb(0x60);
+            printf("Key pressed : scancode = %x\n", scancode);
             break;
+        }
         default:
             printf("IRQ %d : Unhandled irq\n", context->int_num);
             break;
@@ -524,6 +525,16 @@ int_regs *irq_dispatch(int_regs *context) {
     return context;
 }
 
+static uint8_t get_keyboard_set() {
+    outb(0x60, 0xF0);
+    outb(0x60, 0x00);
+    (void)(inb(0x60) == 0xFA);
+    uint8_t ret = inb(0x60);
+    if (ret == 0x43) return 1;
+    else if (ret == 0x41) return 2;
+    else if (ret == 0x3F) return 3;
+    else return 0;
+}
 
 
 void kernel_main(multiboot_info_t* mbd, uint magic) {
@@ -564,6 +575,8 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     printf("page_directory: %x\n", (uint)page_directory);
     printf("first_pagetable: %x\n", (uint)first_pagetable);
     printf("brk: %x\n", brk);
+
+    printf("keyboard set : %d\n", get_keyboard_set());
 
 
     // loop through the memory map and display the values 
