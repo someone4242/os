@@ -66,5 +66,7 @@ joma.sh
 charles.sh
 max.sh
 
+.clangd
+
 altgrub.sh
 myos.kernel

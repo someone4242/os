@@ -9,6 +9,7 @@
 #include <kernel/multiboot.h>
 #include <kernel/kernel.h>
 #include <kbdriver.h>
+#include <kellp.h>
 
 void init_pagemap() {
     for (size_t i = 0; i < TABLE_SIZE; i++)
@@ -103,6 +104,9 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     }
 
     */
+
+    // init_kellp();
+
     while (1); // à garder, si aucun processus implémenté
 }
 

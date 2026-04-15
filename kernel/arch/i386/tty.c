@@ -29,6 +29,30 @@ void terminal_initialize(void) {
 	}
 }
 
+void terminal_update(const char* data, size_t lim_in) {
+    size_t lim =
+        (lim_in <= VGA_WIDTH * VGA_HEIGHT)
+            ? lim
+            : VGA_WIDTH * VGA_HEIGHT;
+
+    size_t r_lim = lim / VGA_WIDTH;
+    size_t c_lim = lim % VGA_HEIGHT;
+    for (size_t i = 0; i < lim; i++) {
+        terminal_buffer[i] = vga_entry(data[i] ,terminal_color);
+    }
+    for (size_t i = lim; i < VGA_WIDTH * VGA_HEIGHT; i++) {
+        terminal_buffer[i] = vga_entry(' ' ,terminal_color);
+    }
+
+    if (lim == VGA_WIDTH * VGA_HEIGHT) {
+        terminal_row = 0;
+        terminal_column = 0;
+    } else {
+        terminal_row = r_lim;
+        terminal_column = c_lim;
+    }
+}
+
 void terminal_setcolor(uint8_t color) {
 	terminal_color = color;
 }

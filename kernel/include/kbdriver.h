@@ -1,3 +1,6 @@
+#ifndef KBDRIVER_H
+#define KBDRIVER_H
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -105,3 +108,6 @@ uint8_t kb_scan_to_key(uint8_t scancode);
 char kb_key_to_ascii(uint8_t input);
 uint8_t kb_scan();
 char kb_readc();
+
+
+#endif

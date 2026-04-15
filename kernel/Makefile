@@ -30,9 +30,10 @@ LIBS:=$(LIBS) $(KERNEL_ARCH_LIBS)
 KERNEL_OBJS=\
 $(KERNEL_ARCH_OBJS) \
 kernel/kernel.o \
-kernel/kbdriver.o \
 kernel/allocator.o \
 kernel/interrupt.o \
+kernel/kbdriver.o \
+kernel/kellp.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \

@@ -6,6 +6,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/tty.h>
 #include <kbdriver.h>
+#include <kellp.h>
 
 /*
  * Setting up the Global Descriptor Table (GDT)
@@ -213,7 +214,7 @@ int_regs *irq_dispatch(int_regs *context) {
             uint8_t keycode = kb_scan_to_key(scancode);
             char ch = kb_key_to_ascii(keycode);
             if (ch != 0)
-                putchar(ch);
+                kellp_feedinp(ch);
             break;
         }
         default:
