@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "macros.h"
-#include "kernel/allocator.h"
-#include "kernel/tty.h"
-#include "kernel/multiboot.h"
+#include <macros.h>
+#include <kernel/allocator.h>
+#include <kernel/tty.h>
+#include <kernel/multiboot.h>
 
 
 // we take the infos given by grub about memory map and fill in the page info table

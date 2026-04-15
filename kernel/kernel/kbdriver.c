@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <stdint.h>
 
-#include "macros.h"
-#include "kbdriver.h"
+#include <macros.h>
+#include <kbdriver.h>
 
 
 // include <x86.h>

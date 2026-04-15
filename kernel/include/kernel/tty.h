@@ -1,7 +1,7 @@
 #ifndef _KERNEL_TTY_H
 #define _KERNEL_TTY_H
 
-#include "macros.h"
+#include <macros.h>
 
 void terminal_initialize(void);
 void terminal_putchar(char c);

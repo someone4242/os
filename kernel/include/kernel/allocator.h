@@ -1,8 +1,9 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include "macros.h"
-#include "kernel/multiboot.h"
+
+#include <macros.h>
+#include <kernel/multiboot.h>
 
 typedef struct physical_page_info {
     // 0 -> libre
