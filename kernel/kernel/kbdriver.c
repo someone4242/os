@@ -1,6 +1,11 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+
+#include "macros.h"
 #include "kbdriver.h"
 
-#include <stdint.h>
+
 // include <x86.h>
 
 
@@ -18,8 +23,6 @@ static inline uint8_t inb(int port) {
 
 
 static uint8_t mod; // modifiers : 0-shift, 1-caps, 2-alt, 3-ctrl
-
-#define KEYCODE_TABLE_LENGTH 0x59
 
 static const keycode keycode_table[KEYCODE_TABLE_LENGTH] = {
     /* 0x00 */
