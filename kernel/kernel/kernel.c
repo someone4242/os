@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <kernel/tty.h>
 #include "multiboot.h"
+#include "kbdriver.h"
 
 #define uint uint32_t
 
@@ -504,6 +505,7 @@ int_regs *interrupt_dispatch(int_regs *context) {
     // return context
 }
 
+
 int_regs *irq_dispatch(int_regs *context) {
     switch (context->int_num)
     {
@@ -514,7 +516,10 @@ int_regs *irq_dispatch(int_regs *context) {
         case 1: // Keyboard
         {
             uint8_t scancode = inb(0x60);
-            printf("Key pressed : scancode = %x\n", scancode);
+            uint8_t keycode = kb_scan_to_key(scancode);
+            char ch = kb_key_to_ascii(keycode);
+            if (ch != 0)
+                putchar(ch);
             break;
         }
         default:
@@ -537,6 +542,11 @@ static uint8_t get_keyboard_set() {
 }
 
 
+
+
+
+
+
 void kernel_main(multiboot_info_t* mbd, uint magic) {
 	terminal_initialize();
 	printf("Hello, world\n");
@@ -554,11 +564,12 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
 		return;
     }
 
-
     // init GDT, IDT and enable interrupts
     init_gdt();
     init_idt();
     asm volatile ("sti");
+
+    init_kbdriver();
 
     // init physical allocator
     init_physical_pageinfo(mbd);
@@ -596,7 +607,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         //      */
         // }
     }
-
+    /*
     test_function();
 
     int n = 10;
@@ -616,7 +627,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         printf("\n");
     }
 
-
+    */
     while (1); // à garder, si aucun processus implémenté
 }
 
