@@ -19,7 +19,7 @@ static inline uint8_t inb(int port) {
 
 static uint8_t mod; // modifiers : 0-shift, 1-caps, 2-alt, 3-ctrl
 
-#define KEYCODE_TABLE_LENGTH 0x58
+#define KEYCODE_TABLE_LENGTH 0x59
 
 static const keycode keycode_table[KEYCODE_TABLE_LENGTH] = {
     /* 0x00 */
@@ -120,6 +120,7 @@ static const keycode keycode_table[KEYCODE_TABLE_LENGTH] = {
     KEY_UNDEFINED,
     KEY_UNDEFINED,
     KEY_UNDEFINED,
+    KEY_CHEVR,
     KEY_F11,
     KEY_F12,
 };
@@ -128,26 +129,26 @@ static const struct complex_map {
     uint8_t map[4];
 } complex_table[] = {
     {{'&', '1', '&', '&'}},
-    {{'é', '2', 'É', '~'}},
+    {{/*'é'*/ 0xE9, '2', /*'É'*/ 0xC9, '~'}},
     {{'"', '3', '"', '#'}},
     {{'\'', '4', '\'', '{'}},
     {{'(', '5', '(', '['}},
     {{'-', '6', '-', '|'}},
-    {{'è', '7', 'È', '`'}},
+    {{/*'è'*/ 0xE8, '7', /*'È'*/ 0xC8, '`'}},
     {{'_', '8', '_', '\\'}},
-    {{'ç', '9', 'Ç', '^'}},
-    {{'à', '0', 'À', '@'}},
-    {{')', '°', ')', ']'}},
+    {{/*'ç'*/ 0xE7, '9', /*'Ç'*/ 0xC7, '^'}},
+    {{/*'à'*/ 0xE0, '0', /*'À'*/ 0xC0, '@'}},
+    {{')', /*'°'*/ 0xB0, ')', ']'}},
     {{'=', '+', '=', '}'}},
-    {{'^', '¨', '^', '^'}},
-    {{'$', '£', '$', '¤'}},
-    {{'ù', '%', 'Ù', 'ù'}},
-    {{'*', 'µ', '*', '*'}},
+    {{'^', /*'¨'*/ 0xA8, '^', '^'}},
+    {{'$', /*'£'*/ 0xA3, '$', /*'¤'*/ 0xA4}},
+    {{/*'ù'*/ 0xF9, '%', /*'Ù'*/ 0xD9, /*'ù'*/ 0xF9}},
+    {{'*', /*'µ'*/ 0xB5, '*', '*'}},
     {{'<', '>', '<', '|'}},
     {{',', '?', ',', ','}},
     {{';', '.', ';', ';'}},
     {{':', '/', ':', ':'}},
-    {{'!', '§', '!', '!'}}
+    {{'!', /*'§'*/ 0xA7, '!', '!'}}
 };
 
 
@@ -196,7 +197,7 @@ char kb_key_to_ascii(uint8_t input) {
             case KEY_BACK:  return '\b';
             case KEY_SPACE: return ' ';
             case KEY_SUPPR: return 0x7F;
-            case KEY_SQUARE:return '²';
+            case KEY_SQUARE:return /*'²'*/ 0xB2;
             default:        return 0;
         }
 
@@ -232,11 +233,11 @@ char kb_key_to_ascii(uint8_t input) {
 
 
 uint8_t kb_scan() {
-    kb_scan_to_key(inb(0x60));
+    return kb_scan_to_key(inb(0x60));
 }
 
 char kb_readc() {
-    kb_key_to_ascii(kb_scan());
+    return kb_key_to_ascii(kb_scan());
 }
 
 
