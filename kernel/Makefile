@@ -41,6 +41,7 @@ $(ARCHDIR)/crtbegin.o \
 $(KERNEL_OBJS) \
 $(ARCHDIR)/crtend.o \
 $(ARCHDIR)/crtn.o \
+processes/process1_embed.o \
 
 LINK_LIST=\
 $(LDFLAGS) \
@@ -50,11 +51,18 @@ $(KERNEL_OBJS) \
 $(LIBS) \
 $(ARCHDIR)/crtend.o \
 $(ARCHDIR)/crtn.o \
+processes/process1_embed.o \
 
 .PHONY: all clean install install-headers install-kernel
 .SUFFIXES: .o .c .S
 
 all: myos.kernel
+
+processes/process1_embed.o: processes/process1
+	i686-elf-objcopy -I binary -O elf32-i386 -B i386 $< $@
+
+processes/process1: processes/process1.c
+	i686-elf-gcc -ffreestanding -nostdlib -T arch/i386/process1.ld -Ilibc/include -o $@ $< -Lsysroot/usr/lib -lk -lgcc
 
 myos.kernel: $(OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(LINK_LIST)

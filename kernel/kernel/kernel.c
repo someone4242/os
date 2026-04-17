@@ -23,9 +23,16 @@ void init_pagemap() {
 
 void test_function(void);
 
+extern char _binary_processes_process1_start[];
+extern char _binary_processes_process1_end[];
+extern char _binary_processes_process1_size[];
 void kernel_main(multiboot_info_t* mbd, uint magic) {
+    uint p_start = (uint)_binary_processes_process1_start;
+    uint p_end   = (uint)_binary_processes_process1_end;
+    uint p_size  = (uint)_binary_processes_process1_size;
 	terminal_initialize();
 	printf("Hello, world\n");
+    printf("process start : %x, end : %x, size : %x\n", p_start, p_end, p_size);
     // make sure the magic number matches for memory mapping
     if(magic != MULTIBOOT_BOOTLOADER_MAGIC) {
        // panic("invalid magic number!");
