@@ -105,7 +105,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
 
     */
 
-    // init_kellp();
+    init_kellp();
 
     while (1); // à garder, si aucun processus implémenté
 }
