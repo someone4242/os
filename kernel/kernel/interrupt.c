@@ -206,7 +206,10 @@ int_regs *irq_dispatch(int_regs *context) {
     {
         case 0: // Timer
             ticks++;
-            printf("Time ticked\n");
+            if (ticks == 0x0020) {
+                ticks = 0;
+                printf("Time ticked\n");
+            }
             break;
         case 1: // Keyboard
         {
