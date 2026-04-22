@@ -1,3 +1,6 @@
+#ifndef INTERRUPT_H
+#define INTERRUPT_H
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -38,7 +41,14 @@ typedef struct {
 } __attribute__((packed)) idtr_t;
 // -----------------------------------------------------------------------------
 
+// const uint32_t intern_freq = 1193182; // Hz
+// const uint32_t tick_freq = 1000; // Hz
+#define INTERN_FREQ 1193182 // Hz
+#define TICK_FREQ 100      // Hz
+
 // public functions
 void init_gdt();
 void init_idt();
 uint8_t get_keyboard_set();
+
+#endif

@@ -7,6 +7,7 @@
 #include <kernel/tty.h>
 #include <kbdriver.h>
 #include <kellp.h>
+#include <audio.h>
 
 /*
  * Setting up the Global Descriptor Table (GDT)
@@ -14,6 +15,9 @@
 
 static gdt_desc_t gdt[GDT_SIZE];
 static gdtr_t gdtr;
+
+static uint32_t ticks;
+
 
 extern void gdt_flush();
 
@@ -102,13 +106,9 @@ void PIC_remap(uint32_t offset1, uint32_t offset2) {
     outb(PIC2_DATA, 0);
 }
 
-uint64_t ticks;
-uint32_t intern_freq = 1193182; // Hz
-const uint32_t user_freq = 100; // Hz
-// intern_freq / user_freq sera retenu, seulement sur 16 bits
 
 void init_timer() {
-    uint16_t divisor = intern_freq / user_freq;
+    uint16_t divisor = INTERN_FREQ / TICK_FREQ;
 
     outb(0x43, 0x36); // see osdev PIC page
     outb(0x40, (uint8_t)(divisor & 0xFF));
@@ -129,14 +129,14 @@ void init_idt() {
     idtr.size = IDT_SIZE * sizeof(idt_desc_t) - 1;
     idtr.offset = (uint32_t)&idt;
 
-    // init_timer();
+    init_timer();
 
     pic_enabled = 0x0000;
     PIC_mask();
 
     PIC_remap(0x20, 0x28); // IRQs sont les interrupts de 32 à 47
 
-    pic_enabled = 0x0002; // bit0:Timer ; bit1:Keyboard
+    pic_enabled = 0x0003; // bit0:Timer ; bit1:Keyboard
     PIC_mask();
 
 
@@ -205,10 +205,10 @@ int_regs *irq_dispatch(int_regs *context) {
     switch (context->int_num)
     {
         case 0: // Timer
-            ticks++;
-            if (ticks == 0x0020) {
-                ticks = 0;
+            audio_tick();
+            if (++ticks >= TICK_FREQ) {
                 printf("Time ticked\n");
+                ticks = 0;
             }
             break;
         case 1: // Keyboard
