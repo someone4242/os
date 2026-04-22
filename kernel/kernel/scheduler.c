@@ -59,8 +59,10 @@ process_t* find_process(size_t pid) {
     return process;
 }
 
-int_regs schedule(int_regs context) {
-    current_process->context = context;
+int_regs schedule(process_t* new_process) {
+    int_regs context = new_process->context;
+    if(current_process == NULL) current_process = new_process;
+    current_process->context = new_process->context;
     current_process->process_status = READY;
 
     while (true) {
