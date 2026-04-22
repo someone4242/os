@@ -3,7 +3,18 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <macros.h>
+#include <kernel/kernel.h>
+#include <kernel/allocator.h>
 #include <kernel/scheduler.h>
+
+// struct temp_process_t {
+//     size_t pid;
+//     status_t process_status;
+//     int_regs context;
+//     uint* root_page_table;
+//     char name[NAME_MAX_LEN];
+//     struct temp_process_t  *next;
+// };
 
 // current process being executed
 process_t *current_process = NULL;
@@ -89,4 +100,36 @@ process_t* create_process(char* name, void(*function)(void*), void* arg) {
     add_process(process);
 
     return process;
+}
+
+uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
+    char *old_code = (char*)code_start,
+         *new_code = (char*)alloc_virtual_page(code_end - code_start);
+    for(uint i = 0; i < code_end - code_start; i++)
+        new_code[i] = old_code[i];
+
+    uint* pd = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
+    uint* snd_pt = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
+    uint* stack_pt = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
+
+    pd[TABLE_SIZE-1] = (uint)pd;
+    pd[TABLE_SIZE-2] = (uint)stack_pt | 3;
+    pd[0] = (uint)first_pagetable | 3;
+    pd[1] = (uint)snd_pt | 3;
+
+    //on init snd_pt
+    for(uint i = 0; i < TABLE_SIZE; i++)
+        snd_pt[i] = 2;
+    uint nb_code_page = (code_end - code_start + PAGE_SIZE - 1) / PAGE_SIZE;
+    for(uint i = 0; i < nb_code_page; i++)
+        snd_pt[i] = (code_start + i * PAGE_SIZE) | 3;
+
+    //on init stack_pt
+    for(uint i = 0; i < TABLE_SIZE; i++)
+        stack_pt[i] = 2;
+    for(uint i = TABLE_SIZE-4; i < TABLE_SIZE; i++) {
+        uint* new_page = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
+        stack_pt[i] = (uint)new_page | 3;
+    }
+    return pd;
 }
