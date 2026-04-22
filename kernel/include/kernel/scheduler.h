@@ -27,4 +27,4 @@ void add_process(process_t* process);
 void delete_process(size_t pid); //does nothing if process absent
 process_t* find_process(size_t pid); //return NULL if not found
 
-void schedule(void);
+int_regs schedule(int_regs context);
