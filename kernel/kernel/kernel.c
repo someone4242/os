@@ -62,7 +62,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     init_pagemap();
     loadPageDirectory(page_directory);
     enablePaging();
-
+    
     printf("kernel: %x - %x\n", start_addr, end_addr);
     printf("pageinfo: %x - %x\n", (uint)pageinfo, (uint)pageinfo + sizeof(pageinfo));
     printf("page_directory: %x\n", (uint)page_directory);
