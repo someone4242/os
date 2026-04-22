@@ -106,6 +106,8 @@ uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
         snd_pt[i] = (code_start + i * PAGE_SIZE) | 3;
 
     //on init stack_pt
+    print_brk();
+    printf("stack_pt : %d\n", (uint)stack_pt);
     for(uint i = 0; i < TABLE_SIZE; i++)
         stack_pt[i] = 2;
     for(uint i = TABLE_SIZE-4; i < TABLE_SIZE; i++) {
@@ -119,7 +121,7 @@ process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, 
     process_t* process = malloc(sizeof(process_t));
 
     process->root_page_table = setup_new_pagedirectory(code_start, code_end);
-    strncpy(process->name, name, NAME_MAX_LEN);
+    memcpy(process->name, name, NAME_MAX_LEN);
     process->pid = next_free_pid++;
     process->process_status = READY;
     process->context.ss = KERNEL_DS;

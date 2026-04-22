@@ -63,8 +63,6 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     loadPageDirectory(page_directory);
     enablePaging();
 
-    SAFE_BLOCK_NUMBER_public_edit(rand());
-
     printf("kernel: %x - %x\n", start_addr, end_addr);
     printf("pageinfo: %x - %x\n", (uint)pageinfo, (uint)pageinfo + sizeof(pageinfo));
     printf("page_directory: %x\n", (uint)page_directory);
@@ -115,8 +113,9 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
 
     // init_kellp();
 
+    print_brk();
     process_t* process1 = create_process("feur", p_start, p_end, NULL);
-    schedule(process1->context);
+    // schedule(process1->context);
 
     while (1); // à garder, si aucun processus implémenté
 }

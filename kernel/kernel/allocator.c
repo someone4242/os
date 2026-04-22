@@ -82,6 +82,10 @@ uint alloc_virtual_page(size_t memory_size) {
     return virtual_addr;
 }
 
+void print_brk() {
+    printf("current brk : %d\n", brk);
+}
+
 
 static uint SAFE_BLOCK_NUMBER = 0x15366593;
 static block* first_block = NULL;
@@ -223,10 +227,10 @@ void brk_public_edit(uint n) {
 }
 
 uint SAFE_BLOCK_NUMBER_public_get() {
-    return brk;
+    return SAFE_BLOCK_NUMBER;
 }
 
 void SAFE_BLOCK_NUMBER_public_edit(uint n) {
-    brk = n;
+    SAFE_BLOCK_NUMBER = n;
     return;
 }
