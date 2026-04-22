@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 #include <macros.h>
 #include <kernel/kernel.h>
 #include <kernel/allocator.h>
@@ -82,26 +83,6 @@ int_regs schedule(int_regs context) {
     return current_process->context;
 }
 
-
-process_t* create_process(char* name, void(*function)(void*), void* arg) {
-    process_t* process = malloc(sizeof(process_t));
-
-    strncpy(process->name, name, NAME_MAX_LEN);
-    process->pid = next_free_pid++;
-    process->process_status = READY;
-    process->context.ss = KERNEL_DS;
-    process->context.esp = alloc_stack();
-    process->context.eflags = 0x202;
-    process->context.cs = KERNEL_CS;
-    process->context.eip = (uint64_t)function;
-    process->context.edi = (uint64_t)arg;
-    process->context.ebp = 0;
-
-    add_process(process);
-
-    return process;
-}
-
 uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
     char *old_code = (char*)code_start,
          *new_code = (char*)alloc_virtual_page(code_end - code_start);
@@ -133,3 +114,39 @@ uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
     }
     return pd;
 }
+
+process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, void* arg) {
+    process_t* process = malloc(sizeof(process_t));
+
+    process->root_page_table = setup_new_pagedirectory(code_start, code_end);
+    strncpy(process->name, name, NAME_MAX_LEN);
+    process->pid = next_free_pid++;
+    process->process_status = READY;
+    process->context.ss = KERNEL_DS;
+    process->context.esp = 0xFFC00000 - sizeof(uint);
+    process->context.eflags = 0x202;
+    process->context.cs = KERNEL_CS;
+    process->context.eip = 0x400000;
+    process->context.edi = (uint32_t)arg;
+    process->context.ebp = 0;
+
+    // initialisation du reste
+    process->context.gs = 0;
+    process->context.fs = 0;
+    process->context.es = 0;
+    process->context.ds = 0;
+    process->context.esi = 0;
+    process->context.eax = 0;
+    process->context.ebx = 0;
+    process->context.ecx = 0;
+    process->context.edx = 0;
+    process->context.int_num = 0;
+    process->context.err_code = 0;
+    process->context.useresp = 0;
+    process->next = NULL;
+
+    add_process(process);
+
+    return process;
+}
+
