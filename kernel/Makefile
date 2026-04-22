@@ -44,6 +44,15 @@ $(ARCHDIR)/crtend.o \
 $(ARCHDIR)/crtn.o \
 processes/process1_embed.o \
 
+PROC_LIBS=\
+$(LDFLAGS) \
+$(ARCHDIR)/crti.o \
+$(ARCHDIR)/crtbegin.o \
+$(ARCHDIR)/tty.o \
+$(LIBS) \
+$(ARCHDIR)/crtend.o \
+$(ARCHDIR)/crtn.o
+
 LINK_LIST=\
 $(LDFLAGS) \
 $(ARCHDIR)/crti.o \
@@ -63,7 +72,7 @@ processes/process1_embed.o: processes/process1
 	i686-elf-objcopy -I binary -O elf32-i386 -B i386 $< $@
 
 processes/process1: processes/process1.c
-	$(CC) $(CFLAGS) -T arch/i386/process1.ld -o $@ $< $(LIBS)
+	$(CC) $(CFLAGS) -T arch/i386/process1.ld -o $@ $< $(PROC_LIBS)
 
 myos.kernel: $(OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(LINK_LIST)
