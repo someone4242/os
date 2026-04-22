@@ -34,6 +34,7 @@ kernel/allocator.o \
 kernel/interrupt.o \
 kernel/kbdriver.o \
 kernel/kellp.o \
+kernel/scheduler.o \
 
 OBJS=\
 $(ARCHDIR)/crti.o \

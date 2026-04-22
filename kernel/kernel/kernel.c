@@ -4,9 +4,10 @@
 #include <stdbool.h>
 #include <macros.h>
 #include <kernel/allocator.h>
-#include <kernel/interrupt.h>
+//#include <kernel/interrupt.h>
 #include <kernel/tty.h>
 #include <kernel/multiboot.h>
+#include <kernel/scheduler.h>
 #include <kernel/kernel.h>
 #include <kbdriver.h>
 #include <kellp.h>
@@ -136,4 +137,8 @@ void test_function() {
 
     // printf("pointeur du tableau : %d\n", (uint)a);
     free(a);
+}
+
+void schedule(void) {
+    
 }

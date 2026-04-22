@@ -42,3 +42,5 @@
 
 #define KB_DATA 0x60
 #define KB_COMMAND 0x64
+
+#define NAME_MAX_LEN 64
