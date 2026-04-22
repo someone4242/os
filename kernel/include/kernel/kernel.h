@@ -1,3 +1,6 @@
+#ifndef _KERNEL_H 
+#define _KERNEL_H 
+
 #include <stddef.h>
 #include <stdint.h>
 
@@ -6,3 +9,5 @@
 static uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 static uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 void init_pagemap();
+
+#endif

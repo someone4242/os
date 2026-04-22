@@ -7,6 +7,7 @@
 #include <kernel/tty.h>
 #include <kbdriver.h>
 #include <kellp.h>
+#include <kernel/scheduler.h>
 
 /*
  * Setting up the Global Descriptor Table (GDT)
@@ -228,7 +229,7 @@ int_regs *irq_dispatch(int_regs *context) {
     }
     PIC_sendEOI(context->int_num);
     if (need_to_schedule) {
-        //return schedule(context);
+        return schedule(context);
     }
     return context;
 }

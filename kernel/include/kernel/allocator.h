@@ -1,3 +1,6 @@
+#ifndef _ALLOCATOR_H
+#define _ALLOCATOR_H
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -46,3 +49,5 @@ uint SAFE_BLOCK_NUMBER_public_get();
 void SAFE_BLOCK_NUMBER_public_edit(uint n);
 
 void print_brk();
+
+#endif

@@ -1,3 +1,6 @@
+#ifndef _INTERRUPT_H
+#define _INTERRUPT_H
+
 #include <stddef.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -42,3 +45,5 @@ typedef struct {
 void init_gdt();
 void init_idt();
 uint8_t get_keyboard_set();
+
+#endif
