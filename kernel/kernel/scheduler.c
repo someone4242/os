@@ -104,6 +104,8 @@ uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
         snd_pt[i] = (code_start + i * PAGE_SIZE) | 3;
 
     //on init stack_pt
+    print_brk();
+    printf("stack_pt : %d\n", (uint)stack_pt);
     for(uint i = 0; i < TABLE_SIZE; i++)
         stack_pt[i] = 2;
     for(uint i = TABLE_SIZE-4; i < TABLE_SIZE; i++) {

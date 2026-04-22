@@ -44,3 +44,5 @@ uint brk_public_get();
 void brk_public_edit(uint n);
 uint SAFE_BLOCK_NUMBER_public_get();
 void SAFE_BLOCK_NUMBER_public_edit(uint n);
+
+void print_brk();
