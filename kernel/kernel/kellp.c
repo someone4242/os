@@ -162,10 +162,12 @@ parsed_cmd parse_command(char *cmd_line, size_t len) {
     return (parsed_cmd){ c, tbl };
 }
 
+
 // temp
 void print_parsed(parsed_cmd cmd) {
     for (int i = 0; i < cmd.count; i++) {
-        kellp_feedinp('\n');
+        cursor = (cursor / TAB_WIDTH + 1) * TAB_WIDTH;
+        if (cursor >= TAB_SIZE) tab_scroll(1);
         kellp_writestring(cmd.tbl[i]);
     }
 }
@@ -188,18 +190,20 @@ void init_kellp() {
     terminal_update(tab, cursor);
 }
 
-void kellp_feedinp(char ch) {
-    switch (ch)
+void kellp_feedinp(input_t inp) {
+    char ch;
+    switch (inp.kc)
     {
-        case '\n': // A changer : correspondrait au Shift + Enter
-            cursor = TAB_WIDTH * (cursor / TAB_WIDTH + 1);
-            if (cursor >= TAB_SIZE) {
-                tab_scroll(1);
-                cursor -= TAB_WIDTH;
+        case KEY_ENTER:
+            if (inp.mod & MOD_SHIFT) {
+                cursor = TAB_WIDTH * (cursor / TAB_WIDTH + 1);
+                if (cursor >= TAB_SIZE) {
+                    tab_scroll(1);
+                    cursor -= TAB_WIDTH;
+                }
+                break;
             }
-            break;
 
-        case 'N': // temporaire
             print_parsed(parse_command(tab + cmd_start, cursor - cmd_start));
             cursor = TAB_WIDTH * (cursor / TAB_WIDTH + 1);
             if (cursor >= TAB_SIZE) {
@@ -210,11 +214,7 @@ void kellp_feedinp(char ch) {
             cmd_start = cursor;
             break;
 
-        case '\r': // input possible même ?
-            cursor = TAB_WIDTH * (cursor / TAB_WIDTH);
-            break;
-
-        case '\b':
+        case KEY_BACK:
             if (cursor == cmd_start) break;
             cursor--;
             tab[cursor] = 0x00;
@@ -222,7 +222,8 @@ void kellp_feedinp(char ch) {
             break;
 
         default:
-            kellp_putchar(ch);
+            ch = kb_inp_to_ascii(inp);
+            if (ch != 0) kellp_putchar(ch);
             break;
     }
 

@@ -214,10 +214,8 @@ int_regs *irq_dispatch(int_regs *context) {
         case 1: // Keyboard
         {
             uint8_t scancode = inb(0x60);
-            uint8_t keycode = kb_scan_to_key(scancode);
-            char ch = kb_key_to_ascii(keycode);
-            if (ch != 0)
-                kellp_feedinp(ch);
+            input_t input = kb_scan_to_inp(scancode);
+            kellp_feedinp(input);
             break;
         }
         default:

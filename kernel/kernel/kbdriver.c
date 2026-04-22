@@ -1,10 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
+
 #include <stdint.h>
 
 #include <macros.h>
 #include <kbdriver.h>
-
 
 // include <x86.h>
 
@@ -160,17 +158,20 @@ void init_kbdriver() {
     mod = 0;
 }
 
-uint8_t kb_scan_to_key(uint8_t scancode) {
+input_t kb_scan_to_inp(uint8_t scancode) {
+    input_t inp;
+    inp.mod = mod;
     if ((scancode & 0x7F) > KEYCODE_TABLE_LENGTH)
-        return KEY_UNDEFINED;
+        inp.kc = KEY_UNDEFINED;
 
-    return (scancode & 0x80) + (keycode_table[scancode & 0x7F]);
+    inp.kc = (scancode & 0x80) + (keycode_table[scancode & 0x7F]);
+    return inp;
 }
 
-char kb_key_to_ascii(uint8_t input) {
-    keycode kc = input & 0x7F;
+char kb_inp_to_ascii(input_t input) {
+    keycode kc = input.kc & 0x7F;
 
-    if (input & 0x80) {                        // key released
+    if (input.kc & 0x80) {                        // key released
         switch (kc)
         {
             case KEY_LSHIFT:
@@ -235,12 +236,12 @@ char kb_key_to_ascii(uint8_t input) {
 }
 
 
-uint8_t kb_scan() {
-    return kb_scan_to_key(inb(0x60));
+input_t kb_scan() {
+    return kb_scan_to_inp(inb(0x60));
 }
 
 char kb_readc() {
-    return kb_key_to_ascii(kb_scan());
+    return kb_inp_to_ascii(kb_scan());
 }
 
 

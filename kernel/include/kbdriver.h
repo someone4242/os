@@ -4,6 +4,11 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#define MOD_SHIFT   0x01
+#define MOD_CAP     0x02
+#define MOD_ALT     0x04
+#define MOD_CTRL    0x08
+
 typedef enum {
     KEY_UNDEFINED,
 
@@ -98,15 +103,15 @@ typedef enum {
 } keycode;
 
 typedef struct {
-    uint8_t mod;
+    uint8_t mod; // modifiers : 0-shift, 1-caps, 2-alt, 3-ctrl
     keycode kc;
 } input_t;
 
 
 void init_kbdriver();
-uint8_t kb_scan_to_key(uint8_t scancode);
-char kb_key_to_ascii(uint8_t input);
-uint8_t kb_scan();
+input_t kb_scan_to_inp(uint8_t scancode);
+char kb_inp_to_ascii(input_t input);
+input_t kb_scan();
 char kb_readc();
 
 
