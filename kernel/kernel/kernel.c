@@ -113,7 +113,6 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
 
     // init_kellp();
 
-    print_brk();
     process_t* process1 = create_process("feur", p_start, p_end, NULL);
     schedule(process1);
 

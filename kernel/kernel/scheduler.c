@@ -94,25 +94,25 @@ uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
     uint* stack_pt = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
 
     pd[TABLE_SIZE-1] = (uint)pd;
-    pd[TABLE_SIZE-2] = (uint)stack_pt | 3;
+    pd[TABLE_SIZE-2] = (uint)stack_pt | 7;
     pd[0] = (uint)first_pagetable | 3;
-    pd[1] = (uint)snd_pt | 3;
+    pd[1] = (uint)snd_pt | 7;
 
     //on init snd_pt
     for(uint i = 0; i < TABLE_SIZE; i++)
-        snd_pt[i] = 2;
+        snd_pt[i] = 6;
     uint nb_code_page = (code_end - code_start + PAGE_SIZE - 1) / PAGE_SIZE;
     for(uint i = 0; i < nb_code_page; i++)
-        snd_pt[i] = (code_start + i * PAGE_SIZE) | 3;
+        snd_pt[i] = (code_start + i * PAGE_SIZE) | 7;
 
     //on init stack_pt
     print_brk();
     printf("stack_pt : %d\n", (uint)stack_pt);
     for(uint i = 0; i < TABLE_SIZE; i++)
-        stack_pt[i] = 2;
+        stack_pt[i] = 6;
     for(uint i = TABLE_SIZE-4; i < TABLE_SIZE; i++) {
         uint* new_page = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
-        stack_pt[i] = (uint)new_page | 3;
+        stack_pt[i] = (uint)new_page | 7;
     }
     return pd;
 }
