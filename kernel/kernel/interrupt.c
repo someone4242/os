@@ -207,7 +207,7 @@ int_regs *irq_dispatch(int_regs *context) {
         case 0: // Timer
             audio_tick();
             if (++ticks >= TICK_FREQ) {
-                printf("Time ticked\n");
+                // ce block est effectué toutes les secondes
                 ticks = 0;
             }
             break;

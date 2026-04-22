@@ -46,7 +46,7 @@ void audio_tick() {
 
 // duration in ms
 void audio_beep(uint32_t freq, uint32_t duration) {
-    audio_countdown = duration;
+    audio_countdown = (TICK_FREQ * duration) / 1000;
     audio_set_freq(freq);
     audio_on();
 }

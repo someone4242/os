@@ -5,6 +5,7 @@
 #include <string.h>
 #include <kernel/tty.h>
 #include <kernel/allocator.h>
+#include <audio.h>
 
 #define TAB_WIDTH 80
 #define TAB_HEIGHT 25
@@ -12,6 +13,28 @@
 static char tab[TAB_SIZE];
 static size_t cursor;
 static size_t cmd_start;
+
+
+#define NULL_PARSED_CMD (parsed_cmd){ 0, NULL }
+#define NULL_CMD        (cmd){ NULL, NULL }
+
+typedef struct {
+    int count;
+    char **tbl;
+} parsed_cmd;
+
+typedef struct {
+    char *name;
+    void (*f)(parsed_cmd);
+} builtin_cmd;
+
+#define NB_BUILTINS 2
+static builtin_cmd builtins[NB_BUILTINS] = {};
+
+/* Builtins */
+void builtin_echo(parsed_cmd cmd);
+void builtin_beep(parsed_cmd cmd);
+
 
 
 /* Utilitaries */
@@ -65,10 +88,9 @@ void kellp_writestring(const char* data) {
 }
 
 
-
 /* Parsing (need for a dedicated standard library later ?) */
 
-size_t count_args(char *cmd_line, size_t len) {
+static size_t count_args(char *cmd_line, size_t len) {
     uint8_t state = 0x00; // 0:sniffing
     int c = 0;
 
@@ -91,20 +113,12 @@ size_t count_args(char *cmd_line, size_t len) {
 }
 
 // compte le nombre de chars jusqu'à tomber sur `ch` (exclus)
-size_t count_until(char *str, size_t len, char ch) {
+static size_t count_until(char *str, size_t len, char ch) {
     for (size_t i = 0; i < len; i++) {
         if (str[i] == ch) return i;
     }
     return len;
 }
-
-typedef struct {
-    int count;
-    char **tbl;
-} parsed_cmd;
-
-#define NULL_CMD (parsed_cmd){ 0, NULL }
-
 static void write_arg(char **destptr, char *src, size_t len) {
     char *arg = (char *)kmalloc((1 + len) * sizeof(char));
     if (arg == NULL) { *destptr = NULL; return; }
@@ -115,11 +129,11 @@ static void write_arg(char **destptr, char *src, size_t len) {
 
 // Parseur de ligne de commange
 // A ajouter : l'échappement des chars
-parsed_cmd parse_command(char *cmd_line, size_t len) {
+static parsed_cmd parse_command(char *cmd_line, size_t len) {
     size_t arg_count = count_args(cmd_line, len);
 
     char **tbl = (char **)kmalloc(arg_count * sizeof(void *));
-    if (tbl == NULL) { return NULL_CMD; }
+    if (tbl == NULL) { return NULL_PARSED_CMD; }
 
     uint8_t state = 0x00; // 0:sniffing 1:reading 2:in-quotes
     if (len > 0 && cmd_line[0] != ' ') state |= 0x02;
@@ -134,7 +148,7 @@ parsed_cmd parse_command(char *cmd_line, size_t len) {
                 if (state & 0x04) break;
                 if (state & 0x02) {
                     write_arg(tbl + c, cmd_line + word_start, i - word_start);
-                    if (tbl[c] == NULL) { return NULL_CMD; }
+                    if (tbl[c] == NULL) { return NULL_PARSED_CMD; }
                     c++;
                     state &= ~0x02; // stop reading
                 }
@@ -143,12 +157,12 @@ parsed_cmd parse_command(char *cmd_line, size_t len) {
 
             case '"':
                 if ((state & 0x04) == 0) {
-                    if (i == len - 1) { return NULL_CMD; }
+                    if (i == len - 1) { return NULL_PARSED_CMD; }
                     word_start = i + 1;
                     state = 0x04; // in quotes
                 } else {
                     write_arg(tbl + c, cmd_line + word_start, i - word_start);
-                    if (tbl[c] == NULL) { return NULL_CMD; }
+                    if (tbl[c] == NULL) { return NULL_PARSED_CMD; }
                     c++;
                     state = 0x01; // start sniffing
                 }
@@ -164,11 +178,11 @@ parsed_cmd parse_command(char *cmd_line, size_t len) {
         }
     }
 
-    if (state & 0x04) { return NULL_CMD; }
+    if (state & 0x04) { return NULL_PARSED_CMD; }
 
     if (state & 0x02) {
         write_arg(tbl + c, cmd_line + word_start, len - word_start);
-        if (tbl[c] == NULL) { return NULL_CMD; }
+        if (tbl[c] == NULL) { return NULL_PARSED_CMD; }
         c++;
     }
 
@@ -176,8 +190,8 @@ parsed_cmd parse_command(char *cmd_line, size_t len) {
 }
 
 
-// temp
-void print_parsed(parsed_cmd cmd) {
+// When useless, just print the parsed command
+static void print_parsed(parsed_cmd cmd) {
     for (int i = 0; i < cmd.count; i++) {
         cursor_drop_down();
         kellp_writestring(cmd.tbl[i]);
@@ -186,9 +200,32 @@ void print_parsed(parsed_cmd cmd) {
 
 
 
+/* Command execution */
+static void execute_parsed_cmd(parsed_cmd cmd) {
+    // look for builtin
+    size_t namelen = strlen(cmd.tbl[0]);
+    for (int i = 0; i < NB_BUILTINS; i++) {
+        if (builtins[i].name != NULL &&
+                memcmp(cmd.tbl[0], builtins[i].name, namelen) == 0) {
+            (*builtins[i].f)(cmd); return;
+        }
+    }
+
+    cursor_drop_down();
+    kellp_writestring("Command does not exist, here it is parsed :");
+    print_parsed(cmd);
+}
+
+
+
 /* Interface */
 
 void init_kellp() {
+    // Builtins
+    // builtins[0] = (builtin_cmd){ "echo", &builtin_echo };
+    builtins[1] = (builtin_cmd){ "beep", &builtin_beep };
+
+
     for (size_t i = 0; i < TAB_SIZE; i++) {
         tab[i] = 0x00;
     }
@@ -201,10 +238,12 @@ void init_kellp() {
 }
 
 void kellp_feedinp(input_t inp) {
+    parsed_cmd cmd;
     switch (inp.kc)
     {
         case KEY_ENTER:
-            print_parsed(parse_command(tab + cmd_start, cursor - cmd_start));
+            cmd = parse_command(tab + cmd_start, cursor - cmd_start);
+            execute_parsed_cmd(cmd);
             cursor_drop_down();
             kellp_writestring(">> ");
             cmd_start = cursor;
@@ -224,4 +263,36 @@ void kellp_feedinp(input_t inp) {
 
     terminal_update(tab, cursor);
 }
+
+
+//temp
+uint32_t str_to_uint32(char *s) {
+    size_t i = 0;
+    uint32_t k = 0;
+    while (s[i]) {
+        if ('0' <= s[i] && s[i] <= '9') {
+            k *= 10;
+            k += (uint32_t)(s[i] - '0');
+        }
+        i++;
+    }
+    return k;
+}
+
+
+/* Buitlins */
+
+void builtin_beep(parsed_cmd cmd) {
+    uint32_t freq = 440;
+    uint32_t duration = 3000;
+    if (cmd.count >= 2) freq = str_to_uint32(cmd.tbl[1]);
+    if (cmd.count >= 3) duration = str_to_uint32(cmd.tbl[2]);
+
+    audio_beep(freq, duration);
+}
+
+
+
+
+
 

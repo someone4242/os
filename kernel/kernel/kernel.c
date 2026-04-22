@@ -11,7 +11,6 @@
 #include <kbdriver.h>
 #include <kellp.h>
 
-#include <audio.h>
 
 void init_pagemap() {
     for (size_t i = 0; i < TABLE_SIZE; i++)
@@ -108,8 +107,6 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     */
 
     init_kellp();
-
-    audio_beep(1000, 3000);
 
     while (1); // à garder, si aucun processus implémenté
 }
