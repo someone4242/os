@@ -16,7 +16,7 @@ struct temp_process_t {
     size_t pid;
     status_t process_status;
     int_regs context;
-    void* root_page_table;
+    uint* root_page_table;
     char name[NAME_MAX_LEN];
     struct temp_process_t  *next;
 };
