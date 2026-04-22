@@ -59,10 +59,22 @@ process_t* find_process(size_t pid) {
     return process;
 }
 
-int_regs schedule(process_t* new_process) {
-    int_regs context = new_process->context;
-    if(current_process == NULL) current_process = new_process;
-    current_process->context = new_process->context;
+void copy_regs_to_save(int_regs* context, process_t* process) {
+    memcpy(&process->context, context, sizeof(int_regs));
+}
+
+void load_save_regs(int_regs* context, process_t* process) {
+    memcpy(context, &process->context, sizeof(int_regs));
+}
+
+int_regs* schedule(int_regs* context) {
+    if (processes_list == NULL) {
+        return context;
+    }
+    if (current_process == NULL) {
+        current_process = processes_list;
+    }
+    copy_regs_to_save(context, current_process);
     current_process->process_status = READY;
 
     while (true) {
@@ -80,7 +92,7 @@ int_regs schedule(process_t* new_process) {
             break;
         }
     }
-    return current_process->context;
+    return &current_process->context;
 }
 
 uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {

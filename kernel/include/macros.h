@@ -50,3 +50,6 @@
 #define KERNEL_DS 0x10
 #define USER_CS 0x18
 #define USER_DS 0x20
+
+#define TIMER_ENABLED 0x0003
+#define TIMER_DISABLED 0x0002

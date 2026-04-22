@@ -136,7 +136,7 @@ void init_idt() {
 
     PIC_remap(0x20, 0x28); // IRQs sont les interrupts de 32 à 47
 
-    pic_enabled = 0x0002; // bit0:Timer ; bit1:Keyboard
+    pic_enabled = TIMER_ENABLED; // bit0:Timer ; bit1:Keyboard
     PIC_mask();
 
 
@@ -202,6 +202,7 @@ int_regs *interrupt_dispatch(int_regs *context) {
 
 
 int_regs *irq_dispatch(int_regs *context) {
+    bool need_to_schedule = false;
     switch (context->int_num)
     {
         case 0: // Timer
@@ -209,6 +210,7 @@ int_regs *irq_dispatch(int_regs *context) {
             if (ticks == 0x0020) {
                 ticks = 0;
                 printf("Time ticked\n");
+                need_to_schedule = true;
             }
             break;
         case 1: // Keyboard
@@ -225,6 +227,9 @@ int_regs *irq_dispatch(int_regs *context) {
             break;
     }
     PIC_sendEOI(context->int_num);
+    if (need_to_schedule) {
+        //return schedule(context);
+    }
     return context;
 }
 
