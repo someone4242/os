@@ -70,3 +70,5 @@ max.sh
 
 altgrub.sh
 myos.kernel
+
+kernel/processes/process1
