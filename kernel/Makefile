@@ -63,7 +63,7 @@ processes/process1_embed.o: processes/process1
 	i686-elf-objcopy -I binary -O elf32-i386 -B i386 $< $@
 
 processes/process1: processes/process1.c
-	$(CC) $(CFLAGS) -T arch/i386/process1.ld -o $@ $< $(LINK_LIST)
+	$(CC) $(CFLAGS) -T arch/i386/process1.ld -o $@ $< $(LIBS)
 
 myos.kernel: $(OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(LINK_LIST)
