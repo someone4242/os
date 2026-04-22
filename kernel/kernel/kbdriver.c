@@ -158,20 +158,9 @@ void init_kbdriver() {
     mod = 0;
 }
 
-input_t kb_scan_to_inp(uint8_t scancode) {
-    input_t inp;
-    inp.mod = mod;
-    if ((scancode & 0x7F) > KEYCODE_TABLE_LENGTH)
-        inp.kc = KEY_UNDEFINED;
 
-    inp.kc = (scancode & 0x80) + (keycode_table[scancode & 0x7F]);
-    return inp;
-}
-
-char kb_inp_to_ascii(input_t input) {
-    keycode kc = input.kc & 0x7F;
-
-    if (input.kc & 0x80) {                        // key released
+static char process_kc(uint8_t released, keycode kc) {
+    if (released) {
         switch (kc)
         {
             case KEY_LSHIFT:
@@ -237,11 +226,32 @@ char kb_inp_to_ascii(input_t input) {
 
 
 input_t kb_scan() {
-    return kb_scan_to_inp(inb(0x60));
+    uint8_t scancode = inb(0x60);
+    input_t inp;
+
+    // Modifiers before input
+    inp.mod = mod;
+
+    // Keycode
+    keycode kc;
+    uint8_t released = scancode & 0x80;
+    if ((scancode & 0x7F) > KEYCODE_TABLE_LENGTH) {
+        kc = KEY_UNDEFINED;
+        inp.kc = KEY_UNDEFINED;
+    } else {
+        kc = keycode_table[scancode & 0x7F];
+        inp.kc = released + kc;
+    }
+
+
+    // ASCII Character
+    inp.ch = process_kc(released, kc);
+
+    return inp;
 }
 
 char kb_readc() {
-    return kb_inp_to_ascii(kb_scan());
+    return kb_scan().ch;
 }
 
 

@@ -27,8 +27,22 @@ static void tab_scroll(const size_t amount) {
     }
 }
 
-static void drop_cursor() {
+static void scroll(const size_t amount) {
+    if (cursor < amount * TAB_WIDTH || cmd_start < amount * TAB_WIDTH) {
+        init_kellp();
+    }
+    cursor -= amount * TAB_WIDTH;
+    cmd_start -= amount * TAB_WIDTH;
+    tab_scroll(amount);
+}
+
+static void cursor_drop_left() {
     while (cmd_start < cursor && tab[cursor - 1] == 0x00) cursor--;
+}
+
+static void cursor_drop_down() {
+    cursor = TAB_WIDTH * (cursor / TAB_WIDTH + 1);
+    if (cursor >= TAB_SIZE) scroll(1);
 }
 
 
@@ -37,8 +51,7 @@ static void drop_cursor() {
 void kellp_putchar(char ch) {
     tab[cursor] = ch;
     if (cursor++ == TAB_SIZE) {
-        tab_scroll(1);
-        cursor -= TAB_WIDTH;
+        scroll(1);
     }
 }
 
@@ -166,13 +179,10 @@ parsed_cmd parse_command(char *cmd_line, size_t len) {
 // temp
 void print_parsed(parsed_cmd cmd) {
     for (int i = 0; i < cmd.count; i++) {
-        cursor = (cursor / TAB_WIDTH + 1) * TAB_WIDTH;
-        if (cursor >= TAB_SIZE) tab_scroll(1);
+        cursor_drop_down();
         kellp_writestring(cmd.tbl[i]);
     }
 }
-
-
 
 
 
@@ -191,25 +201,11 @@ void init_kellp() {
 }
 
 void kellp_feedinp(input_t inp) {
-    char ch;
     switch (inp.kc)
     {
         case KEY_ENTER:
-            if (inp.mod & MOD_SHIFT) {
-                cursor = TAB_WIDTH * (cursor / TAB_WIDTH + 1);
-                if (cursor >= TAB_SIZE) {
-                    tab_scroll(1);
-                    cursor -= TAB_WIDTH;
-                }
-                break;
-            }
-
             print_parsed(parse_command(tab + cmd_start, cursor - cmd_start));
-            cursor = TAB_WIDTH * (cursor / TAB_WIDTH + 1);
-            if (cursor >= TAB_SIZE) {
-                tab_scroll(1);
-                cursor -= TAB_WIDTH;
-            }
+            cursor_drop_down();
             kellp_writestring(">> ");
             cmd_start = cursor;
             break;
@@ -218,12 +214,11 @@ void kellp_feedinp(input_t inp) {
             if (cursor == cmd_start) break;
             cursor--;
             tab[cursor] = 0x00;
-            drop_cursor();
+            cursor_drop_left();
             break;
 
         default:
-            ch = kb_inp_to_ascii(inp);
-            if (ch != 0) kellp_putchar(ch);
+            if (inp.ch != 0) kellp_putchar(inp.ch);
             break;
     }
 

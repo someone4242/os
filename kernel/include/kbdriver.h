@@ -105,12 +105,12 @@ typedef enum {
 typedef struct {
     uint8_t mod; // modifiers : 0-shift, 1-caps, 2-alt, 3-ctrl
     keycode kc;
+    char ch;
 } input_t;
 
 
 void init_kbdriver();
-input_t kb_scan_to_inp(uint8_t scancode);
-char kb_inp_to_ascii(input_t input);
+
 input_t kb_scan();
 char kb_readc();
 
