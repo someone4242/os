@@ -60,12 +60,10 @@ process_t* find_process(size_t pid) {
 }
 
 int_regs schedule(int_regs context) {
-    process_t* prempted_process;
     current_process->context = context;
     current_process->process_status = READY;
 
     while (true) {
-        process_t *prev_process = current_process;
         if (current_process->next != NULL) {
             current_process = current_process->next;
         } else {
@@ -119,7 +117,7 @@ process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, 
     process_t* process = malloc(sizeof(process_t));
 
     process->root_page_table = setup_new_pagedirectory(code_start, code_end);
-    strncpy(process->name, name, NAME_MAX_LEN);
+    memcpy(process->name, name, NAME_MAX_LEN);
     process->pid = next_free_pid++;
     process->process_status = READY;
     process->context.ss = KERNEL_DS;
