@@ -146,6 +146,3 @@ void test_function() {
     free(a);
 }
 
-void schedule(void) {
-    
-}
