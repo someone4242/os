@@ -38,10 +38,20 @@ void audio_set_freq(uint32_t freq) {
     outb(0x42, (uint8_t)(div >> 8 & 0xFF));
 }
 
+void audio_set_freq_prec(uint32_t freq) {
+    uint32_t div = 100 * INTERN_FREQ / freq;
+
+    outb(0x43, 0xB6); // Channel 2 : square wave lo/hi
+    outb(0x42, (uint8_t)(div & 0xFF));
+    outb(0x42, (uint8_t)(div >> 8 & 0xFF));
+}
+
 
 void audio_tick() {
-    if (audio_countdown == 0) audio_off();
-    else if (audio_countdown > 0) audio_countdown--;
+    if (audio_countdown > 0) {
+        if (--audio_countdown == 0) audio_off();
+    }
+
 }
 
 // duration in ms

@@ -14,6 +14,9 @@ static char tab[TAB_SIZE];
 static size_t cursor;
 static size_t cmd_start;
 
+#define STATE_NQDMJW 0x01
+static uint8_t state; // 0:NQDM JW
+
 
 #define NULL_PARSED_CMD (parsed_cmd){ 0, NULL }
 #define NULL_CMD        (cmd){ NULL, NULL }
@@ -28,12 +31,24 @@ typedef struct {
     void (*f)(parsed_cmd);
 } builtin_cmd;
 
-#define NB_BUILTINS 2
+#define NB_BUILTINS 4
 static builtin_cmd builtins[NB_BUILTINS] = {};
 
 /* Builtins */
+void builtin_help(parsed_cmd cmd);
+
 void builtin_echo(parsed_cmd cmd);
+
 void builtin_beep(parsed_cmd cmd);
+
+void builtin_nqdmjw(parsed_cmd cmd);
+void nqdmjw_feedinp(input_t inp);
+
+
+#define NB_NOTE_KEYS 17
+typedef uint8_t note;
+uint8_t nqdmjw_state;
+unsigned char visual_note = 219;
 
 
 
@@ -222,8 +237,10 @@ static void execute_parsed_cmd(parsed_cmd cmd) {
 
 void init_kellp() {
     // Builtins
-    // builtins[0] = (builtin_cmd){ "echo", &builtin_echo };
-    builtins[1] = (builtin_cmd){ "beep", &builtin_beep };
+    builtins[0] = (builtin_cmd){ "help", &builtin_help };
+    builtins[1] = (builtin_cmd){ "echo", &builtin_echo };
+    builtins[2] = (builtin_cmd){ "beep", &builtin_beep };
+    builtins[3] = (builtin_cmd){ "nqdmjw", &builtin_nqdmjw };
 
 
     for (size_t i = 0; i < TAB_SIZE; i++) {
@@ -239,11 +256,18 @@ void init_kellp() {
 
 void kellp_feedinp(input_t inp) {
     parsed_cmd cmd;
+
+    if (state & STATE_NQDMJW) {
+        nqdmjw_feedinp(inp);
+        return;
+    }
+
     switch (inp.kc)
     {
         case KEY_ENTER:
             cmd = parse_command(tab + cmd_start, cursor - cmd_start);
             execute_parsed_cmd(cmd);
+            if (state & STATE_NQDMJW) break;
             cursor_drop_down();
             kellp_writestring(">> ");
             cmd_start = cursor;
@@ -281,18 +305,130 @@ uint32_t str_to_uint32(char *s) {
 
 
 /* Buitlins */
+void builtin_help(parsed_cmd cmd) {
+    (void)(cmd);
+    cursor_drop_down();
+    for (int i = 0; i < NB_BUILTINS; i++) {
+        kellp_writestring(builtins[i].name);
+        kellp_putchar(' ');
+    }
+}
+
+void builtin_echo(parsed_cmd cmd) {
+    cursor_drop_down();
+    for (int i = 1; i < cmd.count; i++) {
+        kellp_writestring(cmd.tbl[i]);
+        kellp_putchar(' ');
+    }
+}
 
 void builtin_beep(parsed_cmd cmd) {
     uint32_t freq = 440;
     uint32_t duration = 3000;
     if (cmd.count >= 2) freq = str_to_uint32(cmd.tbl[1]);
     if (cmd.count >= 3) duration = str_to_uint32(cmd.tbl[2]);
-
+    if (cmd.count >= 4) {
+        cursor_drop_down();
+        kellp_writestring("Too many arguments, expected 2 : freq, duration");
+        return;
+    }
     audio_beep(freq, duration);
+}
+
+void builtin_nqdmjw(parsed_cmd cmd) {
+    if (cmd.count >= 2) {
+        cursor_drop_down();
+        kellp_writestring("No arguments expected");
+        return;
+    }
+
+    cursor_drop_down();
+    if (cursor / TAB_WIDTH + 2 >= TAB_HEIGHT) scroll(3);
+    kellp_writestring(
+"=============================== NQDM'S JAZZWORLD ==============================="
+    );
+    kellp_writestring(
+"================================= TIME TO JAZZ ================================="
+    );
+    tab[13 + cursor] = 200;
+    tab[13 + cursor + (NB_NOTE_KEYS * 3) + 1] = 188;
+    state |= STATE_NQDMJW;
+
+    nqdmjw_state = 0;
 }
 
 
 
+/* NQDMJW */
+uint32_t note_freq[] = { 0,
+    26163, 27718, 29366, 31113, 32961, 34923, 36999, 39200, 41530, 44000,
+    46616, 49388, 52325, 55437, 58733, 62225, 65926
+};
+
+note kc_to_note(keycode kc) {
+    switch(kc)
+    {
+        case KEY_Q: return 1;
+        case KEY_Z: return 2;
+        case KEY_S: return 3;
+        case KEY_E: return 4;
+        case KEY_D: return 5;
+        case KEY_F: return 6;
+        case KEY_T: return 7;
+        case KEY_G: return 8;
+        case KEY_Y: return 9;
+        case KEY_H: return 10;
+        case KEY_U: return 11;
+        case KEY_J: return 12;
+        case KEY_K: return 13;
+        case KEY_O: return 14;
+        case KEY_L: return 15;
+        case KEY_P: return 16;
+        case KEY_M: return 17;
+        default:    return 0;
+    }
+}
+
+void nqdmjw_feedinp(input_t inp) {
+    if (inp.kc == KEY_ESC) {
+        audio_off();
+        state &= ~STATE_NQDMJW;
+        cursor_drop_down();
+        kellp_writestring(">> ");
+        cmd_start = cursor;
+        return;
+    }
+
+    if (inp.kc == KEY_SPACE) {
+        nqdmjw_state |= 0x80;
+        return;
+    } else if (inp.kc == 0x80 + KEY_SPACE) {
+        nqdmjw_state &= ~0x80;
+    }
+
+    note n = kc_to_note(inp.kc & 0x7F);
+    if (n == 0) return;
+
+    if (inp.kc & 0x80) {
+        tab[13 + cursor + ((n-1) * 3) + 1] = ' ';
+        tab[13 + cursor + ((n-1) * 3) + 2] = ' ';
+        tab[13 + cursor + ((n-1) * 3) + 3] = ' ';
+        if (n == (nqdmjw_state & 0x1F)) {
+            nqdmjw_state &= ~0x1F;
+            audio_off();
+        }
+    } else {
+        nqdmjw_state = (nqdmjw_state & ~0x1F) + n;
+        uint32_t freq = note_freq[n] / ((nqdmjw_state & 0x80) ? 2 : 1);
+        audio_set_freq_prec(freq);
+        audio_on();
+        tab[13 + cursor + ((n-1) * 3) + 1] = -78;
+        tab[13 + cursor + ((n-1) * 3) + 2] = -78;
+        tab[13 + cursor + ((n-1) * 3) + 3] = -78;
+    }
+
+    terminal_update(tab, cursor + TAB_WIDTH);
+}
 
 
 
