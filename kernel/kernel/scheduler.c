@@ -73,8 +73,9 @@ int_regs* schedule(int_regs* context) {
     }
     if (current_process == NULL) {
         current_process = processes_list;
+    } else {
+        copy_regs_to_save(context, current_process);
     }
-    copy_regs_to_save(context, current_process);
     current_process->process_status = READY;
 
     while (true) {
@@ -92,7 +93,8 @@ int_regs* schedule(int_regs* context) {
             break;
         }
     }
-    return &current_process->context;
+    load_save_regs(context, current_process);
+    return context;//&current_process->context;
 }
 
 uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
@@ -105,7 +107,7 @@ uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
     uint* snd_pt = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
     uint* stack_pt = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
 
-    pd[TABLE_SIZE-1] = (uint)pd;
+    pd[TABLE_SIZE-1] = (uint)pd | 3;
     pd[TABLE_SIZE-2] = (uint)stack_pt | 7;
     pd[0] = (uint)first_pagetable | 3;
     pd[1] = (uint)snd_pt | 7;
@@ -115,7 +117,7 @@ uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
         snd_pt[i] = 6;
     uint nb_code_page = (code_end - code_start + PAGE_SIZE - 1) / PAGE_SIZE;
     for(uint i = 0; i < nb_code_page; i++)
-        snd_pt[i] = (code_start + i * PAGE_SIZE) | 7;
+        snd_pt[i] = ((uint)new_code + i * PAGE_SIZE) | 7;
 
     //on init stack_pt
     print_brk();
@@ -137,7 +139,7 @@ process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, 
     process->pid = next_free_pid++;
     process->process_status = READY;
     process->context.ss = KERNEL_DS;
-    process->context.esp = 0xFFC00000 - sizeof(uint);
+    process->context.esp = 0;//0xFFC00000 - sizeof(uint);
     process->context.eflags = 0x202;
     process->context.cs = KERNEL_CS;
     process->context.eip = 0x400000;
@@ -145,10 +147,10 @@ process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, 
     process->context.ebp = 0;
 
     // initialisation du reste
-    process->context.gs = 0;
-    process->context.fs = 0;
-    process->context.es = 0;
-    process->context.ds = 0;
+    process->context.gs = KERNEL_DS;
+    process->context.fs = KERNEL_DS;
+    process->context.es = KERNEL_DS;
+    process->context.ds = KERNEL_DS;
     process->context.esi = 0;
     process->context.eax = 0;
     process->context.ebx = 0;
@@ -160,7 +162,7 @@ process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, 
     process->next = NULL;
 
     add_process(process);
-
+    
     return process;
 }
 

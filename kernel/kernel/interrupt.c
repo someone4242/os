@@ -1,13 +1,16 @@
+#include <kellp.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
-#include <stdbool.h>
 #include <macros.h>
-#include <kernel/interrupt.h>
-#include <kernel/tty.h>
+#include <stdbool.h>
 #include <kbdriver.h>
-#include <kellp.h>
+#include <kernel/tty.h>
+#include <kernel/kernel.h>
+#include <kernel/interrupt.h>
 #include <kernel/scheduler.h>
+#include <kernel/allocator.h>
 
 /*
  * Setting up the Global Descriptor Table (GDT)
@@ -33,6 +36,9 @@ static void setGdtEntry(int num, uint32_t base, uint32_t limit,
     gdt[num].access = access;
 }
 
+static tss_t tss;
+extern uint32_t stack_top;
+
 void init_gdt() {
     gdtr.size = GDT_SIZE * sizeof(gdt_desc_t) - 1;
     gdtr.offset = (uint32_t)gdt;
@@ -42,11 +48,21 @@ void init_gdt() {
     setGdtEntry(2, 0, 0xFFFFF, 0x92, 0xCF); // Kernel data
     setGdtEntry(3, 0, 0xFFFFF, 0xFA, 0xCF); // User code
     setGdtEntry(4, 0, 0xFFFFF, 0xF2, 0xCF); // User data
+    setGdtEntry(5, (uint)&tss, 0xFFFFF, 0x89, 0xCF); // User data
+
+    memset(&tss, 0, sizeof tss);
+
+	tss.ss0  = 0x10;  // Set the kernel stack segment.
+	tss.esp0 = (uint32_t)&stack_top;
 
     asm volatile ("lgdt %0" : : "m"(gdtr));
+    asm volatile ("ltr %0" : : "r" (0x28));
     gdt_flush();
 }
 
+void set_kernel_stack(uint32_t stack) { // Used when an interrupt occurs
+	tss.esp0 = stack;
+}
 
 /*
  * Setting up the Interrupt Descriptor Table (IDT)
@@ -148,6 +164,7 @@ void init_idt() {
         setIdtEntry(32 + i, irq_stub_0 + (i*16), 0x8E);
 
     asm volatile ("lidt %0" : : "m"(idtr));
+    printf("IDT loaded\n");
 }
 
 
@@ -170,7 +187,7 @@ void hexdump(uint32_t longs, uint32_t *ptr) {
 }
 
 int_regs *interrupt_dispatch(int_regs *context) {
-    printf("\nINT %d; err_code %x\n", context->int_num, context->err_code);
+    printf("\nINT %d; err_code %x, eip %x\n", context->int_num, context->err_code, context->eip);
     switch (context->int_num)
     {
         case 0:
@@ -228,8 +245,12 @@ int_regs *irq_dispatch(int_regs *context) {
             break;
     }
     PIC_sendEOI(context->int_num);
+    need_to_schedule = false; // to patch bug
     if (need_to_schedule) {
-        return schedule(context);
+        int_regs* t = schedule(context);
+        print_int_regs(t);
+        loadPageDirectory(current_process->root_page_table);
+        return t;
     }
     return context;
 }

@@ -1,4 +1,5 @@
 *.d
 *.kernel
 *.o
-processes/process1
+*.out
+*.bin

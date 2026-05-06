@@ -14,7 +14,7 @@
 #define RESERVED 1
 #define DEFAULT 0
 
-#define GDT_SIZE 5
+#define GDT_SIZE 6
 
 #define IDT_SIZE 256
 
@@ -48,8 +48,10 @@
 #define NULL_SELECTOR 0x00
 #define KERNEL_CS 0x08
 #define KERNEL_DS 0x10
-#define USER_CS 0x18
-#define USER_DS 0x20
+#define USER_CS 0x1B
+#define USER_DS 0x23
 
 #define TIMER_ENABLED 0x0003
 #define TIMER_DISABLED 0x0002
+
+#define NB_PROCESS 4

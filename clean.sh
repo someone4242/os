@@ -7,6 +7,7 @@ for PROJECT in $PROJECTS; do
 done
 
 rm kernel/processes/*.out
+rm kernel/processes/*.bin
 rm -rf sysroot
 rm -rf isodir
 rm -rf myos.iso

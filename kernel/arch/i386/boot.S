@@ -18,6 +18,7 @@
 stack_bottom:
 .skip 16384 # 16 KiB
 stack_top:
+.global stack_top 
 
 # The kernel entry point.
 .section .text
@@ -115,7 +116,7 @@ irq_stub:
 
     pushl %esp
     call irq_dispatch
-    movl %eax, %esp         // se place à la stack renvoyée
+    ; movl %eax, %esp         // se place à la stack renvoyée
 
     popw %gs
     popw %fs
@@ -124,7 +125,7 @@ irq_stub:
 
     popa
     add $8, %esp            // retire int_num et err_code de la stack
-    sti
+    ; sti // je pense pouvoir le retirer mais pas sûr
     iret
 
 

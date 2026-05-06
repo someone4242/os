@@ -3,11 +3,11 @@
 
 #include <stddef.h>
 #include <stdint.h>
-
+#include <kernel/scheduler.h>
 #include <macros.h>
 
-static uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
-static uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
+extern uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
+extern uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 void init_pagemap();
 
 #endif
