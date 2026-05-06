@@ -113,6 +113,7 @@ uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
     pd[0] = (uint)virt_to_phys((uint)first_pagetable) | 3;
     pd[1] = (uint)virt_to_phys((uint)second_pagetable) | 3;
     pd[2] = (uint)virt_to_phys((uint)third_pt) | 7;
+    first_pagetable[0xB8] = 0xB8000 | 7; 
 
     //on init snd_pt
     for(uint i = 0; i < TABLE_SIZE; i++)
@@ -141,19 +142,18 @@ process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, 
     memcpy(process->name, name, NAME_MAX_LEN);
     process->pid = next_free_pid++;
     process->process_status = READY;
-    process->context.ss = KERNEL_DS;
-    process->context.esp = 0xFFC00000;//0xFFC00000 - sizeof(uint);
+    process->context.ss = USER_DS;
+    process->context.esp = 0;
     process->context.eflags = 0x202;
-    process->context.cs = KERNEL_CS;
+    process->context.cs = USER_CS;
     process->context.eip = 0x800000;
     process->context.edi = (uint32_t)arg;
-    process->context.ebp = 0xFFC00000;
 
     // initialisation du reste
-    process->context.gs = KERNEL_DS;
-    process->context.fs = KERNEL_DS;
-    process->context.es = KERNEL_DS;
-    process->context.ds = KERNEL_DS;
+    process->context.gs = USER_DS;
+    process->context.fs = USER_DS;
+    process->context.es = USER_DS;
+    process->context.ds = USER_DS;
     process->context.esi = 0;
     process->context.eax = 0;
     process->context.ebx = 0;
@@ -161,7 +161,8 @@ process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, 
     process->context.edx = 0;
     process->context.int_num = 0;
     process->context.err_code = 0;
-    process->context.useresp = 0;
+    process->context.ebp = 0xFFBFFF00;
+    process->context.useresp = 0xFFBFFF00;
     process->next = NULL;
 
     add_process(process);

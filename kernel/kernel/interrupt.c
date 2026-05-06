@@ -248,7 +248,7 @@ int_regs *irq_dispatch(int_regs *context) {
     
     if (need_to_schedule) {
         int_regs* t = schedule(context);
-        // print_int_regs(t);
+        print_int_regs(t);
         loadPageDirectory(current_process->root_page_table);
         return t;
     }

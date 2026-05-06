@@ -116,7 +116,7 @@ irq_stub:
 
     pushl %esp
     call irq_dispatch
-    ; movl %eax, %esp         // se place à la stack renvoyée
+    movl %eax, %esp         // se place à la stack renvoyée
 
     popw %gs
     popw %fs
