@@ -8,6 +8,7 @@
 #include <kernel/tty.h>
 #include <kernel/multiboot.h>
 #include <kernel/scheduler.h>
+#include <kernel/ustar.h>
 #include <kernel/kernel.h>
 #include <kbdriver.h>
 #include <kellp.h>
