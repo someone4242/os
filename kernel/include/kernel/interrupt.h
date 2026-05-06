@@ -77,4 +77,7 @@ void init_idt();
 uint8_t get_keyboard_set();
 void set_kernel_stack(uint32_t stack);
 
+// Syscalls
+void sys_test();
+
 #endif
