@@ -34,7 +34,8 @@ kernel/allocator.o \
 kernel/interrupt.o \
 kernel/kbdriver.o \
 kernel/kellp.o \
-kernel/audio.o
+kernel/audio.o \
+kernel/time.o
 
 OBJS=\
 $(ARCHDIR)/crti.o \

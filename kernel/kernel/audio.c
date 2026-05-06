@@ -1,6 +1,7 @@
 #include <audio.h>
 
 #include <kernel/interrupt.h>
+#include <time.h>
 
 // #include <x86.h>
 // à retirer plus tard

@@ -6,6 +6,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/tty.h>
 #include <kbdriver.h>
+#include <time.h>
 #include <kellp.h>
 #include <audio.h>
 
@@ -15,8 +16,6 @@
 
 static gdt_desc_t gdt[GDT_SIZE];
 static gdtr_t gdtr;
-
-static uint32_t ticks;
 
 
 extern void gdt_flush();
@@ -113,6 +112,8 @@ void init_timer() {
     outb(0x43, 0x36); // see osdev PIC page
     outb(0x40, (uint8_t)(divisor & 0xFF));
     outb(0x40, (uint8_t)((divisor >> 8) & 0xFF));
+
+    init_time();
 }
 
 
@@ -206,9 +207,8 @@ int_regs *irq_dispatch(int_regs *context) {
     {
         case 0: // Timer
             audio_tick();
-            if (++ticks >= TICK_FREQ) {
+            if (time_tick()) {
                 // ce block est effectué toutes les secondes
-                ticks = 0;
             }
             break;
         case 1: // Keyboard
@@ -235,3 +235,5 @@ uint8_t get_keyboard_set() {
     else if (ret == 0x3F) return 3;
     else return 0;
 }
+
+

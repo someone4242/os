@@ -39,12 +39,11 @@ typedef struct {
     uint16_t    size;
     uint32_t    offset;
 } __attribute__((packed)) idtr_t;
+
 // -----------------------------------------------------------------------------
 
 // const uint32_t intern_freq = 1193182; // Hz
 // const uint32_t tick_freq = 1000; // Hz
-#define INTERN_FREQ 1193182 // Hz
-#define TICK_FREQ 100      // Hz
 
 // public functions
 void init_gdt();

@@ -6,6 +6,7 @@
 #include <kernel/tty.h>
 #include <kernel/allocator.h>
 #include <audio.h>
+#include <time.h>
 
 #define TAB_WIDTH 80
 #define TAB_HEIGHT 25
@@ -31,7 +32,7 @@ typedef struct {
     void (*f)(parsed_cmd);
 } builtin_cmd;
 
-#define NB_BUILTINS 4
+#define NB_BUILTINS 5
 static builtin_cmd builtins[NB_BUILTINS] = {};
 
 /* Builtins */
@@ -43,6 +44,8 @@ void builtin_beep(parsed_cmd cmd);
 
 void builtin_nqdmjw(parsed_cmd cmd);
 void nqdmjw_feedinp(input_t inp);
+
+void builtin_date(parsed_cmd cmd);
 
 
 #define NB_NOTE_KEYS 17
@@ -100,6 +103,31 @@ void kellp_write(const char* data, size_t size) {
 
 void kellp_writestring(const char* data) {
     kellp_write(data, strlen(data));
+}
+
+void kellp_writedecimal(int d) {
+    bool has_a_sign = d < 0;
+    if (d < 0) d = - d;
+    char buffer[16] = {'\0'};
+    int i = 0;
+    if (d == 0) buffer[i++] = '0';
+    while (d > 0) {
+        char c = (d % 10) + '0';
+        d = d / 10;
+        buffer[i++] = c;
+    }
+    if (has_a_sign) {
+        buffer[i++] = '-';
+    }
+    buffer[i] = '\0';
+    size_t len = i;
+    for (int j = 0; 2*j < i; j++) {
+        char rem = buffer[j];
+        int a = i - 1 - j;
+        buffer[j] = buffer[a];
+        buffer[a] = rem;
+    }
+    kellp_write(buffer, len);
 }
 
 
@@ -241,6 +269,7 @@ void init_kellp() {
     builtins[1] = (builtin_cmd){ "echo", &builtin_echo };
     builtins[2] = (builtin_cmd){ "beep", &builtin_beep };
     builtins[3] = (builtin_cmd){ "nqdmjw", &builtin_nqdmjw };
+    builtins[4] = (builtin_cmd){ "date", &builtin_date };
 
 
     for (size_t i = 0; i < TAB_SIZE; i++) {
@@ -350,8 +379,8 @@ void builtin_nqdmjw(parsed_cmd cmd) {
     kellp_writestring(
 "================================= TIME TO JAZZ ================================="
     );
-    tab[13 + cursor] = 200;
-    tab[13 + cursor + (NB_NOTE_KEYS * 3) + 1] = 188;
+    tab[13 + cursor] = -56;
+    tab[13 + cursor + (NB_NOTE_KEYS * 3) + 1] = -68;
     state |= STATE_NQDMJW;
 
     nqdmjw_state = 0;
@@ -431,4 +460,32 @@ void nqdmjw_feedinp(input_t inp) {
 }
 
 
+void builtin_date(parsed_cmd cmd) {
+    cursor_drop_down();
+    if (cmd.count >= 2) {
+        cursor_drop_down();
+        kellp_writestring("No arguments expected.");
+        return;
+    }
+    human_time ht = get_human_time();
+    // Display using ISO 8601
+    kellp_writedecimal(ht.century);
+    kellp_writedecimal(ht.year);
+    kellp_putchar('-');
+    if (ht.month < 10) kellp_putchar('0');
+    kellp_writedecimal(ht.month);
+    kellp_putchar('-');
+    if (ht.day < 10) kellp_putchar('0');
+    kellp_writedecimal(ht.day);
+    kellp_putchar('T');
+    if (ht.hour < 10) kellp_putchar('0');
+    kellp_writedecimal(ht.hour);
+    kellp_putchar(':');
+    if (ht.minute < 10) kellp_putchar('0');
+    kellp_writedecimal(ht.minute);
+    kellp_putchar(':');
+    if (ht.second < 10) kellp_putchar('0');
+    kellp_writedecimal(ht.second);
+    kellp_putchar('Z');
+}
 
