@@ -159,7 +159,7 @@ void init_idt() {
 
     for (size_t i = 0; i < IDT_SIZE; i++)
         setIdtEntry(i, isr_stub_0 + (i * 16), 0x8E); // 0b10001110
-
+    setIdtEntry(48, isr_stub_0 + (48 * 16), 0xEE); 
     asm volatile ("lidt %0" : : "m"(idtr));
     printf("IDT loaded\n");
 }

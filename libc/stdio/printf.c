@@ -13,6 +13,7 @@ static bool print(const char* data, size_t length) {
 }
 
 int printf(const char* restrict format, ...) {
+    #if defined(__is_libk)
 	va_list parameters;
 	va_start(parameters, format);
 
@@ -195,4 +196,6 @@ int printf(const char* restrict format, ...) {
 
 	va_end(parameters);
 	return written;
+    #endif
+	return 0;
 }

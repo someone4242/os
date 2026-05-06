@@ -110,7 +110,7 @@ uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
 
     pd[TABLE_SIZE-1] = (uint)pd | 3;
     pd[TABLE_SIZE-2] = (uint)virt_to_phys((uint)stack_pt) | 7;
-    pd[0] = (uint)virt_to_phys((uint)first_pagetable) | 3;
+    pd[0] = (uint)virt_to_phys((uint)first_pagetable) | 7;
     pd[1] = (uint)virt_to_phys((uint)second_pagetable) | 3;
     pd[2] = (uint)virt_to_phys((uint)third_pt) | 7;
     first_pagetable[0xB8] = 0xB8000 | 7; 

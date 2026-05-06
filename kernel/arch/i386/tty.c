@@ -14,7 +14,7 @@ static uint16_t* const VGA_MEMORY = (uint16_t*) 0xB8000;
 static size_t terminal_row;
 static size_t terminal_column;
 static uint8_t terminal_color;
-static uint16_t* terminal_buffer;
+static uint16_t* terminal_buffer = (uint16_t*) 0xB8000;
 
 void terminal_initialize(void) {
 	terminal_row = 0;
