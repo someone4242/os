@@ -40,6 +40,7 @@ void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t perm);
 uint alloc_virtual_page(size_t memory_size);
 uint kmalloc(size_t memory_size);
 void kfree(void* ptr);
+uint virt_to_phys(uint virt);
 
 
 //fonctions publiques

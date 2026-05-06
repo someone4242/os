@@ -205,7 +205,7 @@ int_regs *interrupt_dispatch(int_regs *context) {
         case 14: {
                 uint32_t cr2;
                 asm volatile("mov %%cr2, %0" : "=r"(cr2));
-                printf("Page fault at address %d, err_code %x\n",
+                printf("Page fault at address %x, err_code %x\n",
                         cr2, context->err_code);
             }
             break;
@@ -245,10 +245,10 @@ int_regs *irq_dispatch(int_regs *context) {
             break;
     }
     PIC_sendEOI(context->int_num);
-    need_to_schedule = false; // to patch bug
+    
     if (need_to_schedule) {
         int_regs* t = schedule(context);
-        print_int_regs(t);
+        // print_int_regs(t);
         loadPageDirectory(current_process->root_page_table);
         return t;
     }

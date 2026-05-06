@@ -8,6 +8,7 @@
 
 extern uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 extern uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
+extern uint second_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 void init_pagemap();
 
 #endif

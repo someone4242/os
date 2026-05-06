@@ -100,24 +100,27 @@ int_regs* schedule(int_regs* context) {
 uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
     char *old_code = (char*)code_start,
          *new_code = (char*)alloc_virtual_page(code_end - code_start);
-    for(uint i = 0; i < code_end - code_start; i++)
-        new_code[i] = old_code[i];
+    memcpy(new_code, old_code, code_end - code_start);
+    printf("adresse de new code : %x, longueur : %x\n", (uint)new_code, code_end - code_start);
 
     uint* pd = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
-    uint* snd_pt = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
+    memcpy(pd, page_directory, TABLE_SIZE * sizeof(uint));
+    uint* third_pt = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
     uint* stack_pt = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
 
     pd[TABLE_SIZE-1] = (uint)pd | 3;
-    pd[TABLE_SIZE-2] = (uint)stack_pt | 7;
-    pd[0] = (uint)first_pagetable | 3;
-    pd[1] = (uint)snd_pt | 7;
+    pd[TABLE_SIZE-2] = (uint)virt_to_phys((uint)stack_pt) | 7;
+    pd[0] = (uint)virt_to_phys((uint)first_pagetable) | 3;
+    pd[1] = (uint)virt_to_phys((uint)second_pagetable) | 3;
+    pd[2] = (uint)virt_to_phys((uint)third_pt) | 7;
 
     //on init snd_pt
     for(uint i = 0; i < TABLE_SIZE; i++)
-        snd_pt[i] = 6;
+        third_pt[i] = 6;
     uint nb_code_page = (code_end - code_start + PAGE_SIZE - 1) / PAGE_SIZE;
+    printf("nb code pages : %d\n", nb_code_page);
     for(uint i = 0; i < nb_code_page; i++)
-        snd_pt[i] = ((uint)new_code + i * PAGE_SIZE) | 7;
+        third_pt[i] = ((uint)virt_to_phys((uint)new_code + i * PAGE_SIZE)) | 7;
 
     //on init stack_pt
     print_brk();
@@ -126,7 +129,7 @@ uint* setup_new_pagedirectory(uintptr_t code_start, uintptr_t code_end) {
         stack_pt[i] = 6;
     for(uint i = TABLE_SIZE-4; i < TABLE_SIZE; i++) {
         uint* new_page = (uint*)alloc_virtual_page(TABLE_SIZE * sizeof(uint));
-        stack_pt[i] = (uint)new_page | 7;
+        stack_pt[i] = (uint)virt_to_phys((uint)new_page) | 7;
     }
     return pd;
 }
@@ -139,12 +142,12 @@ process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, 
     process->pid = next_free_pid++;
     process->process_status = READY;
     process->context.ss = KERNEL_DS;
-    process->context.esp = 0;//0xFFC00000 - sizeof(uint);
+    process->context.esp = 0xFFC00000;//0xFFC00000 - sizeof(uint);
     process->context.eflags = 0x202;
     process->context.cs = KERNEL_CS;
-    process->context.eip = 0x400000;
+    process->context.eip = 0x800000;
     process->context.edi = (uint32_t)arg;
-    process->context.ebp = 0;
+    process->context.ebp = 0xFFC00000;
 
     // initialisation du reste
     process->context.gs = KERNEL_DS;

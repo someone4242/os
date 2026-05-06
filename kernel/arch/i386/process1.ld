@@ -1,7 +1,7 @@
 ENTRY(_start)
 
 SECTIONS {
-    . = 0x400000;
+    . = 0x800000;
 
     __ehdr_start = .;       /* début du header ELF — libc en a besoin */
 

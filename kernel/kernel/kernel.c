@@ -17,9 +17,12 @@ void init_pagemap() {
         page_directory[i] = 0x0002;
     
     page_directory[0] = (uint)&first_pagetable | 3;
+    page_directory[1] = (uint)&second_pagetable | 3;
     page_directory[TABLE_SIZE-1] = (uint)page_directory | 3;
     for(uint ptx = 0; ptx < TABLE_SIZE; ptx++)
         first_pagetable[ptx] = (ptx << 12) | 3;
+    for(uint ptx = 0; ptx < TABLE_SIZE; ptx++)
+        second_pagetable[ptx] = (TABLE_SIZE * PAGE_SIZE + ptx << 12) | 3;
 }
 
 void test_function(void);
@@ -30,6 +33,7 @@ extern char _binary_processes_process1_bin_size[];
 
 uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
+uint second_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 
 void kernel_main(multiboot_info_t* mbd, uint magic) {
     uint p_start = (uint)_binary_processes_process1_bin_start;
@@ -81,8 +85,8 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     for(size_t i = 0; i < mbd->mmap_length; i += sizeof(multiboot_memory_map_t)) {
         multiboot_memory_map_t* mmmt = (multiboot_memory_map_t*) (mbd->mmap_addr + i);
 
-        printf("Start Addr: %x %x | Length: %x %x | Size: %x | Type: %x\n",
-            mmmt->addr_high, mmmt->addr_low, mmmt->len_high, mmmt->len_low, mmmt->size, mmmt->type);
+        // printf("Start Addr: %x %x | Length: %x %x | Size: %x | Type: %x\n",
+        //     mmmt->addr_high, mmmt->addr_low, mmmt->len_high, mmmt->len_low, mmmt->size, mmmt->type);
 
         // if(mmmt->type == MULTIBOOT_MEMORY_AVAILABLE) {
         //     /* 
@@ -93,6 +97,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         //      */
         // }
     }
+    printf("brk: %x\n", brk_public_get());
     /*
     test_function();
 
@@ -117,8 +122,8 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
 
     // init_kellp();
 
-    // process_t* process1 = create_process("feur", p_start, p_end, NULL);
-    // add_process(process1);
+    process_t* process1 = create_process("feur", p_start, p_end, NULL);
+    add_process(process1);
     //schedule(process1->context);
 
     while (1); // à garder, si aucun processus implémenté

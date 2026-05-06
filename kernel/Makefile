@@ -69,10 +69,12 @@ processes/process1_embed.o \
 all: myos.kernel
 
 processes/process1.bin: processes/process1.out
-	i686-elf-objcopy -O binary $< $@
+	i686-elf-objcopy --set-section-flags .bss=contents,alloc,load,data $< $@.tmp
+	i686-elf-objcopy -O binary $@.tmp $@
+	rm -f $@.tmp
 
 processes/process1_embed.o: processes/process1.bin
-	i686-elf-objcopy -I binary -O elf32-i386 -B i386 $< $@
+	i686-elf-objcopy -I binary -O elf32-i386 -B i386 $< $@ --gap-fill 0
 
 processes/process1.out: processes/process1.c
 	$(CC) $(CFLAGS) -T arch/i386/process1.ld -o $@ $< $(PROC_LIBS)

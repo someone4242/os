@@ -48,7 +48,20 @@ uintptr_t alloc_physical_page() {
     return (uintptr_t)(pageid * PAGE_SIZE);
 }
 
+uint virt_to_phys(uint virt) {
+    uint pdx = virt >> 22;
+    uint ptx = (virt >> 12) & 0x3FF;
+    uint* pt = (uint*)(0xFFC00000 + (pdx << 12));
 
+    if (!(recursive_pd[pdx] & 1))
+        return 0;
+
+    uint pte = pt[ptx];
+    if (!(pte & 1))
+        return 0;
+
+    return (pte & 0xFFFFF000) | (virt & 0xFFF);
+}
 
 void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t perm) {
     uint pdx = virtual_addr >> 22;
@@ -67,13 +80,14 @@ void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t perm) {
 }
 
 // we allocate the virtual addresses incrementally
-uint brk = TABLE_SIZE * PAGE_SIZE;
+uint brk = end_addr;
+
 uint alloc_virtual_page(size_t memory_size) {
     uint nb_pages = ((uint)memory_size + PAGE_SIZE - 1) / PAGE_SIZE;
     uint virtual_addr = brk;
-    printf("virtual allocation : from %d", brk);
+    // printf("virtual allocation : from %d", brk);
     brk += PAGE_SIZE * nb_pages;
-    printf(" to %d\n", brk);
+    // printf(" to %d\n", brk);
     for(uint i_page = 0; i_page < nb_pages; i_page++) {
         uint physical_addr = (uint)alloc_physical_page();
 
@@ -118,7 +132,7 @@ void push_back(block* cur_block) {
 }
 
 void add_block(size_t memory_size) {
-    size_t mem_alloc = memory_size + (sizeof(int) * (1 << 20));
+    size_t mem_alloc = memory_size + (sizeof(int) * (1 << 16));
     block* ptr = get_new_block(mem_alloc);
 
     // printf("first block %d, last block %d\n", (uint)first_block, (uint)last_block);
