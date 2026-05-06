@@ -149,17 +149,6 @@ isr_stub_\n :
     jmp interrupt_stub
 .endm
 
-.rept 16
-.globl irq_stub_\+
-.align 16
-irq_stub_\+ :
-    cli
-    pushl $0
-    pushl $\+
-    jmp irq_stub
-.endr
-
-
 isr_no_err_stub 0
 isr_no_err_stub 1
 isr_no_err_stub 2
@@ -193,4 +182,15 @@ isr_no_err_stub 29
 isr_err_stub    30
 isr_no_err_stub 31
 
+.rept 16
+.globl irq_stub_\+
+.align 16
+irq_stub_\+ :
+    cli
+    pushl $0
+    pushl $\+
+    jmp irq_stub
+.endr
+
+isr_no_err_stub 48
 

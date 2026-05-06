@@ -160,9 +160,6 @@ void init_idt() {
     for (size_t i = 0; i < IDT_SIZE; i++)
         setIdtEntry(i, isr_stub_0 + (i * 16), 0x8E); // 0b10001110
 
-    for (size_t i = 0; i < 16; i++)
-        setIdtEntry(32 + i, irq_stub_0 + (i*16), 0x8E);
-
     asm volatile ("lidt %0" : : "m"(idtr));
     printf("IDT loaded\n");
 }
@@ -187,9 +184,11 @@ void hexdump(uint32_t longs, uint32_t *ptr) {
 }
 
 int_regs *interrupt_dispatch(int_regs *context) {
+    bool is_fatal = context->int_num < 32;
     printf("\nINT %d; err_code %x, eip %x\n", context->int_num, context->err_code, context->eip);
     switch (context->int_num)
     {
+        // Exceptions
         case 0:
             printf("Division by 0\n");
             break;
@@ -209,13 +208,27 @@ int_regs *interrupt_dispatch(int_regs *context) {
                         cr2, context->err_code);
             }
             break;
+
+        // IRQs manage by irq_dispatch
+
+        // Software Interrupts
+        case 48:
+            printf("Test syscall\n");
+            break;
+
+
         default:
             printf("Unhandled interrupt\n");
+            is_fatal = true;
             break;
     }
-    printf("Interrupt handled, halting...\n");
-    while (1) {};
-    // return context
+
+    if (is_fatal) {
+        printf("Interrupt handled, halting...\n");
+        while (1) {};
+    }
+
+    return context;
 }
 
 
@@ -265,3 +278,16 @@ uint8_t get_keyboard_set() {
     else if (ret == 0x3F) return 3;
     else return 0;
 }
+
+
+
+// SYSCALLS
+
+void sys_test(void) {
+    asm volatile("int %0"
+            : /* no result */
+            : "i"(48)
+            : "cc", "memory");
+}
+
+
