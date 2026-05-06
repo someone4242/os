@@ -24,13 +24,17 @@ void init_pagemap() {
 
 void test_function(void);
 
-extern char _binary_processes_process1_out_start[];
-extern char _binary_processes_process1_out_end[];
-extern char _binary_processes_process1_out_size[];
+extern char _binary_processes_process1_bin_start[];
+extern char _binary_processes_process1_bin_end[];
+extern char _binary_processes_process1_bin_size[];
+
+uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
+uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
+
 void kernel_main(multiboot_info_t* mbd, uint magic) {
-    uint p_start = (uint)_binary_processes_process1_out_start;
-    uint p_end   = (uint)_binary_processes_process1_out_end;
-    uint p_size  = (uint)_binary_processes_process1_out_size;
+    uint p_start = (uint)_binary_processes_process1_bin_start;
+    uint p_end   = (uint)_binary_processes_process1_bin_end;
+    uint p_size  = (uint)_binary_processes_process1_bin_size;
 	terminal_initialize();
 	printf("Hello, world\n");
     printf("process start : %x, end : %x, size : %x\n", p_start, p_end, p_size);
@@ -113,7 +117,8 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
 
     // init_kellp();
 
-    process_t* process1 = create_process("feur", p_start, p_end, NULL);
+    // process_t* process1 = create_process("feur", p_start, p_end, NULL);
+    // add_process(process1);
     //schedule(process1->context);
 
     while (1); // à garder, si aucun processus implémenté

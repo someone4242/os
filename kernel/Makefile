@@ -68,7 +68,10 @@ processes/process1_embed.o \
 
 all: myos.kernel
 
-processes/process1_embed.o: processes/process1.out
+processes/process1.bin: processes/process1.out
+	i686-elf-objcopy -O binary $< $@
+
+processes/process1_embed.o: processes/process1.bin
 	i686-elf-objcopy -I binary -O elf32-i386 -B i386 $< $@
 
 processes/process1.out: processes/process1.c
