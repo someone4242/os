@@ -1,10 +1,8 @@
-#include <stdio.h>
-#include <stdlib.h>
+
 #include <stdint.h>
 
 #include <macros.h>
 #include <kbdriver.h>
-
 
 // include <x86.h>
 
@@ -132,26 +130,26 @@ static const struct complex_map {
     uint8_t map[4];
 } complex_table[] = {
     {{'&', '1', '&', '&'}},
-    {{/*'é'*/ 0xE9, '2', /*'É'*/ 0xC9, '~'}},
+    {{/*'é'*/ 130, '2', /*'É'*/ 144, '~'}},
     {{'"', '3', '"', '#'}},
     {{'\'', '4', '\'', '{'}},
     {{'(', '5', '(', '['}},
     {{'-', '6', '-', '|'}},
-    {{/*'è'*/ 0xE8, '7', /*'È'*/ 0xC8, '`'}},
+    {{/*'è'*/ 138, '7', /*'È' invalide*/ 'E', '`'}},
     {{'_', '8', '_', '\\'}},
-    {{/*'ç'*/ 0xE7, '9', /*'Ç'*/ 0xC7, '^'}},
-    {{/*'à'*/ 0xE0, '0', /*'À'*/ 0xC0, '@'}},
-    {{')', /*'°'*/ 0xB0, ')', ']'}},
+    {{/*'ç'*/ 135, '9', /*'Ç'*/ 128, '^'}},
+    {{/*'à'*/ 133, '0', /*'À' invalide*/ 'A', '@'}},
+    {{')', /*'°'*/  248, ')', ']'}},
     {{'=', '+', '=', '}'}},
-    {{'^', /*'¨'*/ 0xA8, '^', '^'}},
-    {{'$', /*'£'*/ 0xA3, '$', /*'¤'*/ 0xA4}},
-    {{/*'ù'*/ 0xF9, '%', /*'Ù'*/ 0xD9, /*'ù'*/ 0xF9}},
-    {{'*', /*'µ'*/ 0xB5, '*', '*'}},
+    {{'^', /*'¨' invalide*/ 0xA8, '^', '^'}},
+    {{'$', /*'£'*/ 156, '$', /*'¤' invalide*/ 0xA4}},
+    {{/*'ù'*/ 151, '%', /*'Ù' invalide */ 'U', /*'ù'*/ 151}},
+    {{'*', /*'µ'*/ 230, '*', '*'}},
     {{'<', '>', '<', '|'}},
     {{',', '?', ',', ','}},
     {{';', '.', ';', ';'}},
     {{':', '/', ':', ':'}},
-    {{'!', /*'§'*/ 0xA7, '!', '!'}}
+    {{'!', /*'§'*/ 145, '!', '!'}}
 };
 
 
@@ -160,17 +158,9 @@ void init_kbdriver() {
     mod = 0;
 }
 
-uint8_t kb_scan_to_key(uint8_t scancode) {
-    if ((scancode & 0x7F) > KEYCODE_TABLE_LENGTH)
-        return KEY_UNDEFINED;
 
-    return (scancode & 0x80) + (keycode_table[scancode & 0x7F]);
-}
-
-char kb_key_to_ascii(uint8_t input) {
-    keycode kc = input & 0x7F;
-
-    if (input & 0x80) {                        // key released
+static char process_kc(uint8_t released, keycode kc) {
+    if (released) {
         switch (kc)
         {
             case KEY_LSHIFT:
@@ -235,12 +225,33 @@ char kb_key_to_ascii(uint8_t input) {
 }
 
 
-uint8_t kb_scan() {
-    return kb_scan_to_key(inb(0x60));
+input_t kb_scan() {
+    uint8_t scancode = inb(0x60);
+    input_t inp;
+
+    // Modifiers before input
+    inp.mod = mod;
+
+    // Keycode
+    keycode kc;
+    uint8_t released = scancode & 0x80;
+    if ((scancode & 0x7F) > KEYCODE_TABLE_LENGTH) {
+        kc = KEY_UNDEFINED;
+        inp.kc = KEY_UNDEFINED;
+    } else {
+        kc = keycode_table[scancode & 0x7F];
+        inp.kc = released + kc;
+    }
+
+
+    // ASCII Character
+    inp.ch = process_kc(released, kc);
+
+    return inp;
 }
 
 char kb_readc() {
-    return kb_key_to_ascii(kb_scan());
+    return kb_scan().ch;
 }
 
 

@@ -6,11 +6,17 @@
 #include <macros.h>
 #include <stdbool.h>
 #include <kbdriver.h>
+
 #include <kernel/tty.h>
 #include <kernel/kernel.h>
 #include <kernel/interrupt.h>
 #include <kernel/scheduler.h>
 #include <kernel/allocator.h>
+
+#include <time.h>
+#include <kellp.h>
+#include <audio.h>
+
 
 /*
  * Setting up the Global Descriptor Table (GDT)
@@ -18,6 +24,7 @@
 
 static gdt_desc_t gdt[GDT_SIZE];
 static gdtr_t gdtr;
+
 
 extern void gdt_flush();
 
@@ -119,17 +126,15 @@ void PIC_remap(uint32_t offset1, uint32_t offset2) {
     outb(PIC2_DATA, 0);
 }
 
-uint64_t ticks;
-uint32_t intern_freq = 1193182; // Hz
-const uint32_t user_freq = 100; // Hz
-// intern_freq / user_freq sera retenu, seulement sur 16 bits
 
 void init_timer() {
-    uint16_t divisor = intern_freq / user_freq;
+    uint16_t divisor = INTERN_FREQ / TICK_FREQ;
 
     outb(0x43, 0x36); // see osdev PIC page
     outb(0x40, (uint8_t)(divisor & 0xFF));
     outb(0x40, (uint8_t)((divisor >> 8) & 0xFF));
+
+    init_time();
 }
 
 
@@ -146,7 +151,7 @@ void init_idt() {
     idtr.size = IDT_SIZE * sizeof(idt_desc_t) - 1;
     idtr.offset = (uint32_t)&idt;
 
-    // init_timer();
+    init_timer();
 
     pic_enabled = 0x0000;
     PIC_mask();
@@ -248,20 +253,17 @@ int_regs *irq_dispatch(int_regs *context) {
     switch (context->int_num)
     {
         case 0: // Timer
-            ticks++;
-            if (ticks == 0x0020) {
-                ticks = 0;
+            audio_tick();
+            if (time_tick()) {
+                // ce block est effectué toutes les secondes
                 printf("Time ticked\n");
                 need_to_schedule = true;
             }
             break;
         case 1: // Keyboard
         {
-            uint8_t scancode = inb(0x60);
-            uint8_t keycode = kb_scan_to_key(scancode);
-            char ch = kb_key_to_ascii(keycode);
-            if (ch != 0)
-                kellp_feedinp(ch);
+            input_t input = kb_scan();
+            kellp_feedinp(input);
             break;
         }
         default:
@@ -292,7 +294,6 @@ uint8_t get_keyboard_set() {
 }
 
 
-
 // SYSCALLS
 
 void sys_test(void) {
@@ -301,5 +302,4 @@ void sys_test(void) {
             : "i"(48)
             : "cc", "memory");
 }
-
 

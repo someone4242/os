@@ -1,5 +1,5 @@
-#ifndef _INTERRUPT_H
-#define _INTERRUPT_H
+#ifndef INTERRUPT_H
+#define INTERRUPT_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -69,6 +69,7 @@ typedef struct {
     uint16_t    size;
     uint32_t    offset;
 } __attribute__((packed)) idtr_t;
+
 // -----------------------------------------------------------------------------
 
 // public functions
