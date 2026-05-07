@@ -9,10 +9,11 @@ int main() {
     // terminal_initialize();
     // printf("test de processus\n");
     while(1) {
-        asm volatile("int %0"
-                : /* no result */
-                : "i"(50)
-                : "cc", "memory");
+        asm volatile (" ");
+        // asm volatile("int %0"
+        //         : /* no result */
+        //         : "i"(50)
+        //         : "cc", "memory");
     }
     return 0;
 }
