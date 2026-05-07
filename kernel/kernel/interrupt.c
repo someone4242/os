@@ -256,7 +256,7 @@ int_regs *irq_dispatch(int_regs *context) {
             audio_tick();
             if (time_tick()) {
                 // ce block est effectué toutes les secondes
-                printf("Time ticked\n");
+                printf(".");
                 need_to_schedule = true;
             }
             break;
@@ -273,9 +273,9 @@ int_regs *irq_dispatch(int_regs *context) {
     PIC_sendEOI(context->int_num);
     if (need_to_schedule) {
         int_regs* t = schedule(context);
-        print_int_regs(t);
+        // print_int_regs(t);
         loadPageDirectory(current_process->root_page_table);
-        printf("real physical adress of eip : %x\n\n", virt_to_phys(t->eip));
+        // printf("real physical adress of eip : %x\n\n", virt_to_phys(t->eip));
         // print_nb_processes();
         return t;
     }
