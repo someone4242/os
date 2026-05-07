@@ -38,6 +38,7 @@ bool is_free_physical_page(uint pageid);
 uintptr_t alloc_physical_page();
 void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t perm);
 uint alloc_virtual_page(size_t memory_size);
+uint valloc_virtual_page(size_t memory_size);
 uint kmalloc(size_t memory_size);
 void kfree(void* ptr);
 uint virt_to_phys(uint virt);

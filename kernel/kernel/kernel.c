@@ -23,7 +23,7 @@ void init_pagemap() {
     for(uint ptx = 0; ptx < TABLE_SIZE; ptx++)
         first_pagetable[ptx] = (ptx << 12) | 3;
     for(uint ptx = 0; ptx < TABLE_SIZE; ptx++)
-        second_pagetable[ptx] = (TABLE_SIZE * PAGE_SIZE + ptx << 12) | 3;
+        second_pagetable[ptx] = ((TABLE_SIZE * PAGE_SIZE) + (ptx << 12)) | 3;
 }
 
 void test_function(void);
@@ -128,7 +128,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
 
     */
 
-    // init_kellp();
+    init_kellp();
 
     print_nb_processes();
     process_t* process1 = create_process("feur", p1_start, p1_end, NULL);
