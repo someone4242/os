@@ -43,6 +43,7 @@ $(KERNEL_OBJS) \
 $(ARCHDIR)/crtend.o \
 $(ARCHDIR)/crtn.o \
 processes/process1_embed.o \
+processes/process2_embed.o \
 
 PROC_LIBS=\
 $(LDFLAGS) \
@@ -62,6 +63,7 @@ $(LIBS) \
 $(ARCHDIR)/crtend.o \
 $(ARCHDIR)/crtn.o \
 processes/process1_embed.o \
+processes/process2_embed.o \
 
 .PHONY: all clean install install-headers install-kernel
 .SUFFIXES: .o .c .S
@@ -78,6 +80,17 @@ processes/process1_embed.o: processes/process1.bin
 
 processes/process1.out: processes/process1.c
 	$(CC) $(CFLAGS) -T arch/i386/process1.ld -o $@ $< $(PROC_LIBS)
+
+processes/process2.bin: processes/process2.out
+	i686-elf-objcopy --set-section-flags .bss=contents,alloc,load,data $< $@.tmp
+	i686-elf-objcopy -O binary $@.tmp $@
+	rm -f $@.tmp
+
+processes/process2_embed.o: processes/process2.bin
+	i686-elf-objcopy -I binary -O elf32-i386 -B i386 $< $@ --gap-fill 0
+
+processes/process2.out: processes/process2.c
+	$(CC) $(CFLAGS) -T arch/i386/process2.ld -o $@ $< $(PROC_LIBS)
 
 myos.kernel: $(OBJS) $(ARCHDIR)/linker.ld
 	$(CC) -T $(ARCHDIR)/linker.ld -o $@ $(CFLAGS) $(LINK_LIST)

@@ -67,6 +67,16 @@ void load_save_regs(int_regs* context, process_t* process) {
     memcpy(context, &process->context, sizeof(int_regs));
 }
 
+uint get_nb_processes(process_t* cur) {
+    if(cur == NULL) return 0;
+    return 1 + get_nb_processes(cur->next);
+}
+
+void print_nb_processes() {
+    printf("\nNB PROCESSES : %d\n\n", get_nb_processes(processes_list));
+    // printf("test nb processes\n");
+}
+
 int_regs* schedule(int_regs* context) {
     if (processes_list == NULL) {
         return context;

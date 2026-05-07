@@ -32,5 +32,6 @@ process_t* find_process(size_t pid); //return NULL if not found
 
 process_t* create_process(char* name, uintptr_t code_start, uintptr_t code_end, void* arg);
 int_regs* schedule(int_regs* context);
+void print_nb_processes();
 extern process_t* current_process;
 #endif

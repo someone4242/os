@@ -186,7 +186,8 @@ void hexdump(uint32_t longs, uint32_t *ptr) {
 
 int_regs *interrupt_dispatch(int_regs *context) {
     bool is_fatal = context->int_num < 32;
-    printf("\nINT %d; err_code %x, eip %x\n", context->int_num, context->err_code, context->eip);
+    if(context->int_num < 48)
+        printf("\nINT %d; err_code %x, eip %x\n", context->int_num, context->err_code, context->eip);
     switch (context->int_num)
     {
         // Exceptions
@@ -214,7 +215,16 @@ int_regs *interrupt_dispatch(int_regs *context) {
 
         // Software Interrupts
         case 48:
-            printf("Test syscall\n");
+            printf("Test syscall A\n");
+            break;
+        case 49:
+            printf("Test syscall B\n");
+            break;
+        case 50:
+            printf("Test syscall C\n");
+            break;
+        case 51:
+            printf("Test syscall D\n");
             break;
 
 
@@ -259,11 +269,12 @@ int_regs *irq_dispatch(int_regs *context) {
             break;
     }
     PIC_sendEOI(context->int_num);
-    
     if (need_to_schedule) {
         int_regs* t = schedule(context);
         print_int_regs(t);
         loadPageDirectory(current_process->root_page_table);
+        printf("real physical adress of eip : %x\n\n", virt_to_phys(t->eip));
+        // print_nb_processes();
         return t;
     }
     return context;

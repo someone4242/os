@@ -8,10 +8,11 @@ int main() {
     // terminal_set_vga();
     // terminal_initialize();
     // printf("test de processus\n");
+    // test_function();
     while(1) {
         asm volatile("int %0"
                 : /* no result */
-                : "i"(50)
+                : "i"(49)
                 : "cc", "memory");
     }
     return 0;

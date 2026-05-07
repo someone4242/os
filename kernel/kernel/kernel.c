@@ -30,18 +30,25 @@ void test_function(void);
 extern char _binary_processes_process1_bin_start[];
 extern char _binary_processes_process1_bin_end[];
 extern char _binary_processes_process1_bin_size[];
+extern char _binary_processes_process2_bin_start[];
+extern char _binary_processes_process2_bin_end[];
+extern char _binary_processes_process2_bin_size[];
 
 uint page_directory[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 uint first_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 uint second_pagetable[TABLE_SIZE] __attribute__((aligned(PAGE_SIZE)));
 
 void kernel_main(multiboot_info_t* mbd, uint magic) {
-    uint p_start = (uint)_binary_processes_process1_bin_start;
-    uint p_end   = (uint)_binary_processes_process1_bin_end;
-    uint p_size  = (uint)_binary_processes_process1_bin_size;
+    uint p1_start = (uint)_binary_processes_process1_bin_start;
+    uint p1_end   = (uint)_binary_processes_process1_bin_end;
+    uint p1_size  = (uint)_binary_processes_process1_bin_size;
+    uint p2_start = (uint)_binary_processes_process2_bin_start;
+    uint p2_end   = (uint)_binary_processes_process2_bin_end;
+    uint p2_size  = (uint)_binary_processes_process2_bin_size;
 	terminal_initialize();
 	printf("Hello, world\n");
-    printf("process start : %x, end : %x, size : %x\n", p_start, p_end, p_size);
+    printf("process start : %x, end : %x, size : %x\n", p1_start, p1_end, p1_size);
+    printf("process start : %x, end : %x, size : %x\n", p2_start, p2_end, p2_size);
     // make sure the magic number matches for memory mapping
     if(magic != MULTIBOOT_BOOTLOADER_MAGIC) {
        // panic("invalid magic number!");
@@ -71,13 +78,13 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     loadPageDirectory(page_directory);
     enablePaging();
     
-    printf("kernel: %x - %x\n", start_addr, end_addr);
-    printf("pageinfo: %x - %x\n", (uint)pageinfo, (uint)pageinfo + sizeof(pageinfo));
-    printf("page_directory: %x\n", (uint)page_directory);
-    printf("first_pagetable: %x\n", (uint)first_pagetable);
-    printf("brk: %x\n", brk_public_get());
+    // printf("kernel: %x - %x\n", start_addr, end_addr);
+    // printf("pageinfo: %x - %x\n", (uint)pageinfo, (uint)pageinfo + sizeof(pageinfo));
+    // printf("page_directory: %x\n", (uint)page_directory);
+    // printf("first_pagetable: %x\n", (uint)first_pagetable);
+    // printf("brk: %x\n", brk_public_get());
 
-    printf("keyboard set : %d\n", get_keyboard_set());
+    // printf("keyboard set : %d\n", get_keyboard_set());
 
 
     // loop through the memory map and display the values 
@@ -122,9 +129,11 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
 
     // init_kellp();
 
-    process_t* process1 = create_process("feur", p_start, p_end, NULL);
-    add_process(process1);
-    //schedule(process1->context);
+    print_nb_processes();
+    process_t* process1 = create_process("feur", p1_start, p1_end, NULL);
+    print_nb_processes();
+    process_t* process2 = create_process("feur2", p2_start, p2_end, NULL);
+    print_nb_processes();
 
     sys_test();
 
