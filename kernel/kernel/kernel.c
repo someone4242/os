@@ -12,6 +12,7 @@
 #include <kbdriver.h>
 #include <kellp.h>
 
+
 void init_pagemap() {
     for (size_t i = 0; i < TABLE_SIZE; i++)
         page_directory[i] = 0x0002;

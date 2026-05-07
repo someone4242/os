@@ -8,8 +8,9 @@
 
 #include <kbdriver.h>
 
+
 void init_kellp();
-void kellp_feedinp(char ch);
+void kellp_feedinp(input_t inp);
 
 
 #endif
