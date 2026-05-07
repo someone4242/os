@@ -44,6 +44,7 @@ $(KERNEL_OBJS) \
 $(ARCHDIR)/crtend.o \
 $(ARCHDIR)/crtn.o \
 processes/process1_embed.o \
+file-system-generation/fsgen.o \
 
 PROC_LIBS=\
 $(LDFLAGS) \
@@ -63,6 +64,8 @@ $(LIBS) \
 $(ARCHDIR)/crtend.o \
 $(ARCHDIR)/crtn.o \
 processes/process1_embed.o \
+file-system-generation/fsgen.o \
+
 
 .PHONY: all clean install install-headers install-kernel
 .SUFFIXES: .o .c .S

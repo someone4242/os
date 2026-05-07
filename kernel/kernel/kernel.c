@@ -10,6 +10,7 @@
 #include <kernel/scheduler.h>
 #include <kernel/ustar.h>
 #include <kernel/kernel.h>
+#include <fsgen.h>
 #include <kbdriver.h>
 #include <kellp.h>
 
@@ -59,6 +60,7 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     asm volatile ("sti");
 
     init_kbdriver();
+    init_file_system();
 
     // init physical allocator
     init_physical_pageinfo(mbd);

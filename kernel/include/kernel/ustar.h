@@ -34,4 +34,6 @@ typedef struct {
     char file_name_prefix[FILE_NAME_PREFIX_MAX_SIZE];
 } tar_record;
 
+void init_fs_first_adress(tar_record* addr);
+
 #endif
