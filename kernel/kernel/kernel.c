@@ -127,8 +127,6 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     add_process(process1);
     //schedule(process1->context);
 
-    sys_test();
-
     while (1); // à garder, si aucun processus implémenté
 }
 

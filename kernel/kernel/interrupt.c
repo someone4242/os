@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdtab.h>
+#include <syscalls.h>
 #include <stdint.h>
 #include <macros.h>
 #include <stdbool.h>
@@ -191,7 +193,8 @@ void hexdump(uint32_t longs, uint32_t *ptr) {
 
 int_regs *interrupt_dispatch(int_regs *context) {
     bool is_fatal = context->int_num < 32;
-    printf("\nINT %d; err_code %x, eip %x\n", context->int_num, context->err_code, context->eip);
+    // printf("\nINT %d; err_code %x, eip %x\n", context->int_num, context->err_code, context->eip);
+    tab_t *tab;
     switch (context->int_num)
     {
         // Exceptions
@@ -218,10 +221,16 @@ int_regs *interrupt_dispatch(int_regs *context) {
         // IRQs manage by irq_dispatch
 
         // Software Interrupts
-        case 48:
+        case SYSCALL_TEST:
             printf("Test syscall\n");
             break;
 
+
+        case SYSCALL_TERMLOAD:
+            tab = (tab_t *)context->edi;
+            terminal_update(tab->data, tab->size);
+            // printf("Loading tab of size %d\n", (int)tab->size);
+            break;
 
         default:
             printf("Unhandled interrupt\n");
@@ -246,7 +255,7 @@ int_regs *irq_dispatch(int_regs *context) {
             audio_tick();
             if (time_tick()) {
                 // ce block est effectué toutes les secondes
-                printf("Time ticked\n");
+                // printf("Time ticked\n");
                 need_to_schedule = true;
             }
             break;
@@ -261,10 +270,10 @@ int_regs *irq_dispatch(int_regs *context) {
             break;
     }
     PIC_sendEOI(context->int_num);
-    
+
     if (need_to_schedule) {
         int_regs* t = schedule(context);
-        print_int_regs(t);
+        // print_int_regs(t);
         loadPageDirectory(current_process->root_page_table);
         return t;
     }
@@ -280,15 +289,5 @@ uint8_t get_keyboard_set() {
     else if (ret == 0x41) return 2;
     else if (ret == 0x3F) return 3;
     else return 0;
-}
-
-
-// SYSCALLS
-
-void sys_test(void) {
-    asm volatile("int %0"
-            : /* no result */
-            : "i"(48)
-            : "cc", "memory");
 }
 

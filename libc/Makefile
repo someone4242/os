@@ -32,6 +32,7 @@ $(ARCH_FREEOBJS) \
 stdio/printf.o \
 stdio/putchar.o \
 stdio/puts.o \
+stdio/fprintf.o \
 stdlib/abort.o \
 stdlib/qsort.o \
 stdlib/malloc.o \
@@ -41,6 +42,14 @@ string/memcpy.o \
 string/memmove.o \
 string/memset.o \
 string/strlen.o \
+syscalls/syscalls.o \
+stdtab/tab_create.o \
+stdtab/tab_load.o \
+stdtab/tab_putchar.o \
+stdtab/tab_write.o \
+stdtab/tab_writestring.o \
+stdtab/terminal_misc.o \
+
 
 HOSTEDOBJS=\
 $(ARCH_HOSTEDOBJS) \

@@ -1,11 +1,10 @@
 #include <limits.h>
-#include <stdbool.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
-int fprintf(    const bool (*print)(const char*, size_t),
-                const char* restrict format, ...)
+int fprintf(bool (*print)(const char*, size_t),
+            const char* restrict format, ...)
 {
     va_list parameters;
     va_start(parameters, format);
