@@ -10,7 +10,6 @@
 #include <kernel/scheduler.h>
 #include <kernel/kernel.h>
 #include <kbdriver.h>
-#include <kellp.h>
 
 
 void init_pagemap() {
@@ -120,8 +119,6 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     }
 
     */
-
-    // init_kellp();
 
     process_t* process1 = create_process("feur", p_start, p_end, NULL);
     add_process(process1);

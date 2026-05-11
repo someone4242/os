@@ -26,8 +26,7 @@ void tab_cursor_drop_left(tab_t *tab) {
 void tab_cursor_drop_down(tab_t *tab) {
     tab->cursor = tab->width * (tab->cursor / tab->width + 1);
     if  (tab->cursor >= tab->size) {
-        if (tab->autoscroll) tab_scroll(tab, 1);
-        // If no autoscroll, cmd_start is considered unused
+        if (tab->is_terminal) tab_scroll(tab, 1);
         else tab->cursor = 0;
     }
 }

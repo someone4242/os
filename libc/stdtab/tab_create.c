@@ -10,7 +10,7 @@ tab_t *tab_create() {
     tab->height = DISPLAY_HEIGHT;
     tab->size = DISPLAY_SIZE;
     tab->cursor = 0;
-    tab->autoscroll = false;
+    tab->is_terminal = false;
     tab->data = data;
 
     for (size_t i; i < DISPLAY_SIZE; i++) {

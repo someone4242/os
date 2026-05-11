@@ -33,7 +33,6 @@ kernel/kernel.o \
 kernel/allocator.o \
 kernel/interrupt.o \
 kernel/kbdriver.o \
-kernel/kellp.o \
 kernel/scheduler.o \
 kernel/audio.o \
 kernel/time.o

@@ -1,4 +1,3 @@
-#include <kellp.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -16,7 +15,6 @@
 #include <kernel/allocator.h>
 
 #include <time.h>
-#include <kellp.h>
 #include <audio.h>
 
 
@@ -262,7 +260,7 @@ int_regs *irq_dispatch(int_regs *context) {
         case 1: // Keyboard
         {
             input_t input = kb_scan();
-            kellp_feedinp(input);
+            // transférer l'input au processus de premier plan
             break;
         }
         default:

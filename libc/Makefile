@@ -41,12 +41,16 @@ string/memcmp.o \
 string/memcpy.o \
 string/memmove.o \
 string/memset.o \
+string/str_to_uint32.o \
 string/strlen.o \
 syscalls/syscalls.o \
+stdtab/free_parsed_command.o \
 stdtab/tab_create.o \
 stdtab/tab_load.o \
+stdtab/tab_parse_command.o \
 stdtab/tab_putchar.o \
 stdtab/tab_write.o \
+stdtab/tab_writedecimal.o \
 stdtab/tab_writestring.o \
 stdtab/terminal_misc.o \
 
