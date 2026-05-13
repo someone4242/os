@@ -18,8 +18,43 @@ uint32_t inl( uint16_t p_port) {
     return l_ret;
 }
 
+static inline void outb(int port, uint8_t data) {
+  asm volatile("outb %0,%w1" : : "a"(data), "d"(port));
+}
+static inline uint8_t inb(int port) {
+  uint8_t data;
+  asm volatile("inb %w1,%0" : "=a"(data) : "d"(port));
+  return data;
+}
+
 void checkFunction(uint8_t bus, uint8_t device) {
     printf("%d, %d\n", bus, device);
+
+    outb(0x1F6, 0xA0);
+    outb(0x1F2, 0); outb(0x1F3, 0); outb(0x1F4, 0); outb(0x1F5, 0);
+    outb(0x1F7, 0xEC);
+    uint8_t res = inb(0x1F7);
+    printf("%d\n",res);
+    if (res == 0) return;
+    while (res / (1 << 7) == 1)
+    {
+        res = inb(0x1F7);
+    }
+    if (inb(0x1F4) == 0 && inb(0x1F5) == 0) {
+        while (((res/8) % 2 == 0) && (res % 2 == 0))
+        {
+            res = inb(0x1F7);
+        }
+        if (res % 2 == 1) return;
+    }
+    
+    printf("valide! :");
+    uint8_t test;
+    for (int rep = 0; rep < 100; rep++) {
+        test = inb(0x1F0);
+        printf("%d-", test);
+    }
+    
 }
 
 uint16_t getVendorID(uint8_t bus, uint8_t device, uint8_t function) {
