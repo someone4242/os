@@ -9,52 +9,58 @@
 //https://wiki.osdev.org/ATA_PIO_Mode
 //https://learn.microsoft.com/en-us/windows-hardware/drivers/ddi/ata/ns-ata-_identify_device_data
 
-void outl(uint16_t p_port,uint32_t p_data) {
-    asm volatile ("outl %1, %0" : : "dN" (p_port), "a" (p_data));
-}
-uint32_t inl( uint16_t p_port) {
-    uint32_t l_ret;
-    asm volatile ("inl %1, %0" : "=a" (l_ret) : "dN" (p_port));
-    return l_ret;
-}
 
-static inline void outb(int port, uint8_t data) {
-  asm volatile("outb %0,%w1" : : "a"(data), "d"(port));
-}
-static inline uint8_t inb(int port) {
-  uint8_t data;
-  asm volatile("inb %w1,%0" : "=a"(data) : "d"(port));
-  return data;
-}
 
 void checkFunction(uint8_t bus, uint8_t device) {
+    uint8_t read_status;
+
+    //debug
     printf("%d, %d\n", bus, device);
 
-    outb(0x1F6, 0xA0);
+    //selction du master device
+    outb(0x1F6, 0x00);
+
+    // jsp
     outb(0x1F2, 0); outb(0x1F3, 0); outb(0x1F4, 0); outb(0x1F5, 0);
-    outb(0x1F7, 0xEC);
-    uint8_t res = inb(0x1F7);
-    printf("%d\n",res);
-    if (res == 0) return;
-    while (res / (1 << 7) == 1)
-    {
-        res = inb(0x1F7);
+
+    // 400ns delay
+    for (int rep = 0; rep < 20; rep++) {
+        read_status = inb(0x1F7);
     }
-    if (inb(0x1F4) == 0 && inb(0x1F5) == 0) {
-        while (((res/8) % 2 == 0) && (res % 2 == 0))
-        {
-            res = inb(0x1F7);
+
+    wait_for_ready_hard_drive();
+    
+    outb(0X1F7, 0xEC);  // Commande IDENTIFY
+    
+    int timeout = 100000;
+    while (timeout-- > 0) {
+        read_status = inb(0X1F7);
+        
+        if (read_status & 0x80) continue;  // Encore occupé
+        if (read_status & 0x01) return;  // Erreur
+        
+        if (read_status & 0x08) {
+            // DRQ = 1, on peut lire les données
+            break;
         }
-        if (res % 2 == 1) return;
     }
     
-    printf("valide! :");
-    uint8_t test;
-    for (int rep = 0; rep < 100; rep++) {
-        test = inb(0x1F0);
-        printf("%d-", test);
-    }
+    if (timeout == 0) return;
     
+    
+
+    uint16_t test;
+    for (int rep = 0; rep < 256; rep++) {
+        test = inw(0x1F0);
+        if (rep < 90) {
+            //printf("%d-", test);
+            printf("%c-", test/256);
+            printf("%c-", test%256);
+        };
+    }
+    printf("\n");
+
+    //if (ok) printf("valide! :\n");
 }
 
 uint16_t getVendorID(uint8_t bus, uint8_t device, uint8_t function) {

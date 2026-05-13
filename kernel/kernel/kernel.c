@@ -70,11 +70,12 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     loadPageDirectory(page_directory);
     enablePaging();
     
+    /*
     printf("kernel: %x - %x\n", start_addr, end_addr);
     printf("pageinfo: %x - %x\n", (uint)pageinfo, (uint)pageinfo + sizeof(pageinfo));
     printf("page_directory: %x\n", (uint)page_directory);
     printf("first_pagetable: %x\n", (uint)first_pagetable);
-    printf("brk: %x\n", brk_public_get());
+    printf("brk: %x\n", brk_public_get());*/
 
     printf("keyboard set : %d\n", get_keyboard_set());
 
@@ -96,6 +97,14 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         //      */
         // }
     }
+
+    uint8_t test_buffer[512];
+    read_sector_pio(0, test_buffer);
+    for (int rep = 0; rep < 512; rep++) {
+        printf("%c", test_buffer[rep]);
+    }
+    printf("\n");
+
     /*
     test_function();
 

@@ -227,7 +227,7 @@ int_regs *irq_dispatch(int_regs *context) {
             ticks++;
             if (ticks == 0x0020) {
                 ticks = 0;
-                printf("Time ticked\n");
+                //printf("Time ticked\n");
                 need_to_schedule = true;
             }
             break;

@@ -14,6 +14,8 @@
 #define FILE_NAME_PREFIX_MAX_SIZE 167
 #define MAGIC_USTAR_NUMBER_SIZE 6
 #define USTAR_VERSION_SIZE 2
+#define ATA_PRIMARY_BASE 0x1F0
+#define ATA_MASTER 0xE0
 
 typedef struct {
     char file_name[FILE_NAME_MAX_SIZE];
@@ -35,5 +37,17 @@ typedef struct {
 } tar_record;
 
 void init_fs_first_adress(tar_record* addr);
+
+void outb(int port, uint8_t data);
+uint8_t inb(int port);
+
+void outw (uint16_t p_port,uint16_t p_data);
+uint16_t inw(uint16_t p_port);
+
+void outl(uint16_t p_port,uint32_t p_data);
+uint32_t inl( uint16_t p_port);
+
+void wait_for_ready_hard_drive(void);
+void read_sector_pio(uint32_t lba, uint8_t* buffer);
 
 #endif
