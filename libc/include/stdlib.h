@@ -10,12 +10,14 @@ typedef struct {
     int file_size;
     char buffer[512];
     int buf_read_pos;
+    int hd_block;
     int next_blck_to_read;
 } file_descriptor_t;
 
 
 file_descriptor_t* open(const char *filename);
 void close(file_descriptor_t* fd);
+void read(file_descriptor_t* fd, char* buffer, size_t size);
 
 // -----------
 

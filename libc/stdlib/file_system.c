@@ -61,6 +61,7 @@ file_descriptor_t* open(const char *filename) {
     fd->file_size = octascii_to_dec(get_information.file_size, 
                                     FILE_SIZE_SIZE);
     fd->next_blck_to_read = sector_number + 1;
+    fd->hd_block = sector_number;
     fd->buf_read_pos = 512;
 
     return fd;
@@ -68,4 +69,36 @@ file_descriptor_t* open(const char *filename) {
 
 void close(file_descriptor_t* fd) {
     free(fd);
+}
+
+void read(file_descriptor_t* fd, char* buffer, size_t size) {
+    int i = 0;
+    //printf("%d, %d, %d\n", fd->next_blck_to_read, fd->hd_block, fd->file_size);
+    
+    while (67) {
+        while (fd->buf_read_pos < 512 && size > 0) {
+            size--;
+            buffer[i] = fd->buffer[fd->buf_read_pos];
+            fd->buf_read_pos++;
+            i++;
+        }
+
+        if (size == 0) return;
+
+        if (fd->next_blck_to_read > fd->hd_block + fd->file_size) {
+            break;
+        }
+        
+        read_sector_pio(fd->next_blck_to_read, (uint8_t*)fd->buffer);
+        //printf("%s\n", fd->buffer);
+        fd->buf_read_pos = 0;
+        fd->next_blck_to_read++;
+    }
+    while (size > 0) {
+        buffer[i] = '\0';
+        i++;
+        size--;
+    }
+    
+    
 }

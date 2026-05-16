@@ -98,12 +98,18 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         // }
     }
 
-    
+    /*
+    file_descriptor_t* fd = open("/copie_pates.txt");
+    char test_lecture[2000];
+    read(fd, test_lecture, 2000);
+    printf("%s\n", test_lecture);
+    close(fd);*/
+
 
     /*
     uint8_t test_buffer[512];
     
-    read_sector_pio(12, test_buffer);
+    read_sector_pio(17, test_buffer);
     for (int rep = 0; rep < 512; rep++) {
         printf("%c", test_buffer[rep]);
     }
@@ -114,9 +120,9 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         printf("%c", test_buffer[rep]);
     }
     printf("\n");
-    */
+    
 
-    /*
+    
     test_function();
 
     int n = 10;
