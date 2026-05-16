@@ -4,6 +4,21 @@
 #include <sys/cdefs.h>
 #include <stddef.h>
 
+// file system
+
+typedef struct {
+    int file_size;
+    char buffer[512];
+    int buf_read_pos;
+    int next_blck_to_read;
+} file_descriptor_t;
+
+
+file_descriptor_t* open(const char *filename);
+void close(file_descriptor_t* fd);
+
+// -----------
+
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -35,13 +35,6 @@ void outw (uint16_t p_port,uint16_t p_data)
     asm volatile ("outw %1, %0" : : "dN" (p_port), "a" (p_data));
 }
 
-//jsp quoi faire de ça ------------------------------------
-tar_record* tar_fs_start_address;
-
-void init_fs_first_adress(tar_record* addr) {
-    tar_fs_start_address = addr;
-}
-
 size_t octascii_to_dec(char *number, int size) {
     size_t res = 0;
     for (int i = 0; i < size; i++) {
@@ -60,7 +53,7 @@ bool is_zeroed(tar_record* current_record) {
     }
     return true;
 }
-// --------------------------------------------------
+
 
 void wait_for_ready_hard_drive(void) {
     uint8_t read_status;
@@ -89,6 +82,11 @@ void wait_for_ready_hard_drive(void) {
 void wait_for_data_request(void) {
     uint8_t read_status;
 
+    //400 ns delay
+    for (int i = 0; i < 15; i++) {
+        read_status = inb(0X1F7);
+    }
+
     while (67) {
         read_status = inb(0X1F7);
         
@@ -107,7 +105,6 @@ void wait_for_data_request(void) {
 
 
 void read_sector_pio(uint32_t lba, uint8_t* buffer) {
-    
     wait_for_ready_hard_drive();
     
     // Registres de lecture
@@ -120,8 +117,12 @@ void read_sector_pio(uint32_t lba, uint8_t* buffer) {
     //commande READ SECTORS
     outb(ATA_PRIMARY_BASE + 7, 0x20);
     wait_for_data_request();
+
+    //inw(ATA_PRIMARY_BASE);
+    //inw(ATA_PRIMARY_BASE);
+    //inw(ATA_PRIMARY_BASE);
     
-    // 5. Lire les 256 mots (512 octets) du secteur
+    // Lire les 256 mots (512 octets) du secteur
     for (int i = 0; i < 256; i++) {
         uint16_t word = inw(ATA_PRIMARY_BASE);
         buffer[i * 2] = word & 0xFF;            

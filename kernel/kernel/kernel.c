@@ -98,12 +98,23 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
         // }
     }
 
+    
+
+    /*
     uint8_t test_buffer[512];
-    read_sector_pio(0, test_buffer);
+    
+    read_sector_pio(12, test_buffer);
     for (int rep = 0; rep < 512; rep++) {
         printf("%c", test_buffer[rep]);
     }
     printf("\n");
+    
+    read_sector_pio(1, test_buffer);
+    for (int rep = 0; rep < 512; rep++) {
+        printf("%c", test_buffer[rep]);
+    }
+    printf("\n");
+    */
 
     /*
     test_function();

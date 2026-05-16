@@ -49,16 +49,14 @@ void checkFunction(uint8_t bus, uint8_t device) {
     
     
 
-    uint16_t test;
+    
+    //uint16_t test;
+    // free buffer !
     for (int rep = 0; rep < 256; rep++) {
-        test = inw(0x1F0);
-        if (rep < 90) {
-            //printf("%d-", test);
-            printf("%c-", test/256);
-            printf("%c-", test%256);
-        };
+        //test = inw(0x1F0);
+        inw(0x1F0);
     }
-    printf("\n");
+    //printf("\n");
 
     //if (ok) printf("valide! :\n");
 }
