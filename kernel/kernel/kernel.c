@@ -99,12 +99,32 @@ void kernel_main(multiboot_info_t* mbd, uint magic) {
     }
 
     /*
-    file_descriptor_t* fd = open("/copie_pates.txt");
+    file_descriptor_t* fd = open("/examen_systeme_exploitation.txt");
     char test_lecture[2000];
     read(fd, test_lecture, 2000);
     printf("%s\n", test_lecture);
     close(fd);*/
 
+    
+    /*
+    directory_descriptor_t* dir = opendir("/");
+    file_information fi = readdir(dir);
+    printf("%s\n", fi.name);
+    fi = readdir(dir);
+    printf("Kronomuzik : %d\n", fi.succes);
+    printf("%s\n", fi.name);
+    printf("%d\n", fi.size);
+    fi = readdir(dir);
+    printf("%s\n", fi.name);
+    printf("%d\n", fi.size);
+    fi = readdir(dir);
+    printf("%s\n", fi.name);
+    printf("%d\n", fi.size);
+    fi = readdir(dir);
+    printf("%d\n", fi.succes);
+    closedir(dir);
+    */
+    
 
     /*
     uint8_t test_buffer[512];

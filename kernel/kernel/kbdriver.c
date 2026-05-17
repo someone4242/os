@@ -4,6 +4,7 @@
 
 #include <macros.h>
 #include <kbdriver.h>
+#include <kernel/ustar.h>
 
 
 // include <x86.h>
@@ -11,6 +12,7 @@
 
 // à retirer plus tard
 // -----------------------------------------
+/*
 static inline void outb(int port, uint8_t data) {
   asm volatile("outb %0,%w1" : : "a"(data), "d"(port));
 }
@@ -19,6 +21,7 @@ static inline uint8_t inb(int port) {
   asm volatile("inb %w1,%0" : "=a"(data) : "d"(port));
   return data;
 }
+*/
 // -----------------------------------------
 
 

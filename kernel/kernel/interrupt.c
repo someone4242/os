@@ -11,6 +11,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/scheduler.h>
 #include <kernel/allocator.h>
+#include <kernel/ustar.h>
 
 /*
  * Setting up the Global Descriptor Table (GDT)
@@ -69,6 +70,7 @@ void set_kernel_stack(uint32_t stack) { // Used when an interrupt occurs
  */
 
 // outb et inb, tiré du `x86.h` de weensyos
+/*
 static inline void outb(int port, uint8_t data) {
   asm volatile("outb %0,%w1" : : "a"(data), "d"(port));
 }
@@ -77,7 +79,7 @@ static inline uint8_t inb(int port) {
   asm volatile("inb %w1,%0" : "=a"(data) : "d"(port));
   return data;
 }
-
+*/
 
 
 static idt_desc_t idt[IDT_SIZE];
