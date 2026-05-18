@@ -11,10 +11,10 @@ int main() {
     // test_function();
     while(1) {
         asm volatile (" ");
-        // asm volatile("int %0"
-        //         : /* no result */
-        //         : "i"(49)
-        //         : "cc", "memory");
+        asm volatile("int %0"
+                : /* no result */
+                : "i"(49)
+                : "cc", "memory");
     }
     return 0;
 }

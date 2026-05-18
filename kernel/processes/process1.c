@@ -12,10 +12,15 @@ int main() {
         asm volatile (" ");
         // asm volatile("int %0"
         //         : /* no result */
+        //         : "i"(51)
+        //         : "cc", "memory");
+        void* a = malloc(sizeof(uint)*1000);
+        printf("malloc\n");
+        // asm volatile("int %0"
+        //         : /* no result */
         //         : "i"(50)
         //         : "cc", "memory");
-        void* a = malloc(sizeof(uint));
-        free(a);
+        // free(a);
     }
     return 0;
 }

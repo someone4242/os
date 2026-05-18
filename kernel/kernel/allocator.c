@@ -82,7 +82,7 @@ void virtual_memory_map(uint virtual_addr, uint physical_addr, uint8_t perm) {
 
 // we allocate the virtual addresses incrementally
 uint brk = end_addr;
-uint virtual_brk = 2 * TABLE_SIZE * PAGE_SIZE;
+uint virtual_brk = 3 * TABLE_SIZE * PAGE_SIZE;
 
 uint alloc_virtual_page(size_t memory_size) {
     printf("allocation in kernel\n");
@@ -109,8 +109,10 @@ uint valloc_virtual_page(size_t memory_size) {
     for(uint i_page = 0; i_page < nb_pages; i_page++) {
         uint physical_addr = (uint)alloc_physical_page();
 
-        virtual_memory_map(virtual_addr + i_page * PAGE_SIZE, physical_addr, DEFAULT);
+        virtual_memory_map(virtual_addr + i_page * PAGE_SIZE, physical_addr, 0x4);
     }
+    printf("%x\n", (uint)virtual_addr);
+    printf("userspace allocation completed\n");
     return virtual_addr;
 }
 
