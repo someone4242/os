@@ -4,16 +4,27 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-static const uint SAFE_BLOCK_NUMBER = 0x4613a931a;
+static const uint SAFE_BLOCK_NUMBER = 0x13a931a;
 
 static block *first_block = NULL, *last_block = NULL;
+
+#if !defined(__is_libk)
+uint syscall_alloc_virtual_page(size_t memory_size) {
+    uint result;
+    asm volatile("int $0x34"
+                : "=a"(result)
+                : "b"(memory_size)
+                : "memory", "cc");
+    return result;
+}
+#endif
 
 block* get_new_block(size_t memory_size) {
     block* ptr;
     #if defined(__is_libk)
         ptr = (block*)alloc_virtual_page(memory_size + sizeof(block));
     #else 
-        ptr = (block*)valloc_virtual_page(memory_size + sizeof(block));
+        ptr = (block*)syscall_alloc_virtual_page(memory_size + sizeof(block));
     #endif
     ptr->size = memory_size;
     ptr->free = true;

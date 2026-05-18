@@ -85,6 +85,7 @@ uint brk = end_addr;
 uint virtual_brk = 2 * TABLE_SIZE * PAGE_SIZE;
 
 uint alloc_virtual_page(size_t memory_size) {
+    printf("allocation in kernel\n");
     uint nb_pages = ((uint)memory_size + PAGE_SIZE - 1) / PAGE_SIZE;
     uint virtual_addr = brk;
     // printf("virtual allocation : from %d", brk);
@@ -99,6 +100,7 @@ uint alloc_virtual_page(size_t memory_size) {
 }
 
 uint valloc_virtual_page(size_t memory_size) {
+    printf("allocation in userspace\n");
     uint nb_pages = ((uint)memory_size + PAGE_SIZE - 1) / PAGE_SIZE;
     uint virtual_addr = virtual_brk;
     // printf("virtual allocation : from %d", virtual_brk);

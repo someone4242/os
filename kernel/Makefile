@@ -48,13 +48,10 @@ processes/process1_embed.o \
 processes/process2_embed.o \
 
 PROC_LIBS=\
-$(LDFLAGS) \
-$(ARCHDIR)/crti.o \
-$(ARCHDIR)/crtbegin.o \
+-nostdlib \
 $(ARCHDIR)/tty.o \
-$(LIBS) \
-$(ARCHDIR)/crtend.o \
-$(ARCHDIR)/crtn.o
+-lc \
+-lgcc
 
 LINK_LIST=\
 $(LDFLAGS) \

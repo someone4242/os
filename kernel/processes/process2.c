@@ -18,3 +18,10 @@ int main() {
     }
     return 0;
 }
+
+__attribute__((force_align_arg_pointer))
+void _start(void) {
+    // terminal_set_vga();
+    main();
+    while (1);
+}

@@ -231,7 +231,9 @@ int_regs *interrupt_dispatch(int_regs *context) {
         case 51:
             printf("Test syscall D\n");
             break;
-
+        case 52:
+            context->eax = valloc_virtual_page(context->ebx);
+            break;
 
         default:
             printf("Unhandled interrupt\n");

@@ -14,6 +14,14 @@ int main() {
         //         : /* no result */
         //         : "i"(50)
         //         : "cc", "memory");
+        void* a = malloc(sizeof(uint));
+        free(a);
     }
     return 0;
+}
+__attribute__((force_align_arg_pointer))
+void _start(void) {
+    // terminal_set_vga();
+    main();
+    while (1);
 }
